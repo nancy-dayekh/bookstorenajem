@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image"; // Use Next.js Image component
 
 type Product = {
   id: number;
@@ -27,34 +28,30 @@ export default function CreateMultiImage() {
   // Fetch products
   async function fetchProducts() {
     const { data, error } = await supabase
-      .from("add_products")
+      .from<Product>("add_products")
       .select("id,name");
     if (error) return toast.error("Failed to load products");
     setProducts(data || []);
   }
 
-  // Fetch multi-images and map product names
+  // Fetch multi-images
   async function fetchMultiImages() {
     const { data: images, error: imagesError } = await supabase
-      .from("multiimages")
+      .from<MultiImage>("multiimages")
       .select("*")
       .order("id", { ascending: false });
-
     if (imagesError) return toast.error("Failed to load images");
 
     const { data: productsData, error: productsError } = await supabase
-      .from("add_products")
+      .from<Product>("add_products")
       .select("id,name");
-
     if (productsError) return toast.error("Failed to load products");
 
-    const mapped =
-      images?.map((img: any) => ({
-        ...img,
-        product_name:
-          productsData?.find((p: any) => p.id === img.products_id)?.name ||
-          "Unknown",
-      })) || [];
+    const mapped: MultiImage[] = (images || []).map((img) => ({
+      ...img,
+      product_name:
+        productsData?.find((p) => p.id === img.products_id)?.name || "Unknown",
+    }));
 
     setMultiImages(mapped);
   }
@@ -67,19 +64,15 @@ export default function CreateMultiImage() {
   // Upload image to Supabase Storage
   async function uploadImage(file: File) {
     const fileName = `multiimages/${Date.now()}_${file.name}`;
-
-    // رفع الصورة
     const { error: uploadError } = await supabase.storage
       .from("products-images")
       .upload(fileName, file);
     if (uploadError) throw uploadError;
 
-    // الحصول على الرابط العام
     const { data } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
-
-    return data.publicUrl; // لا حاجة لفحص 'error'
+    return data.publicUrl;
   }
 
   // Handle create or update
@@ -90,7 +83,7 @@ export default function CreateMultiImage() {
     }
 
     try {
-      const imageUrl = file ? await uploadImage(file) : previewImage;
+      const imageUrl = file ? await uploadImage(file) : previewImage!;
 
       if (editingId) {
         const { error } = await supabase
@@ -112,8 +105,9 @@ export default function CreateMultiImage() {
       setProductsId("");
       setFile(null);
       fetchMultiImages();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("An unknown error occurred");
     }
   }
 
@@ -170,10 +164,12 @@ export default function CreateMultiImage() {
             className="w-full border border-pink-200 bg-pink-50 px-4 py-3 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none text-gray-700"
           />
           {previewImage && (
-            <img
+            <Image
               src={previewImage}
               alt="Preview"
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-16 h-16 object-cover rounded border border-gray-300"
+              width={64}
+              height={64}
+              className="absolute right-4 top-1/2 -translate-y-1/2 object-cover rounded border border-gray-300"
             />
           )}
         </div>
@@ -203,10 +199,13 @@ export default function CreateMultiImage() {
                 <td className="px-4 py-3 border">{img.id}</td>
                 <td className="px-4 py-3 border">{img.product_name}</td>
                 <td className="px-4 py-3 border">
-                  <img
+                  <Image
                     src={img.image_path}
-                    alt="product"
-                    className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded"
+                    alt={img.product_name || "Product Image"}
+                    width={96}
+                    height={96}
+                    className="object-cover rounded"
+                    unoptimized // Add this line
                   />
                 </td>
                 <td className="px-4 py-3 border flex flex-col sm:flex-row sm:gap-2">
