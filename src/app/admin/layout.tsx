@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Menu, X, LayoutDashboard, Box, Package, Truck, CreditCard } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+
+  useEffect(() => {
+    // ✅ تحقق إذا في auth
+    const auth = localStorage.getItem('admin-auth');
+    if (!auth) {
+      router.push('/login'); // ارجعه على صفحة login
+    }
+  }, [router]);
 
   const links = [
     { href: "/admin", label: "Dashboard", Icon: LayoutDashboard },
@@ -15,7 +24,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/products", label: "Products", Icon: Package },
     { href: "/admin/deliveries", label: "Deliveries", Icon: Truck },
     { href: "/admin/checkouts", label: "Checkouts", Icon: CreditCard },
-    { href: "/admin/multiImages", label: "MultiImages", Icon: Package }, // added MultiImages link
+    { href: "/admin/multiImages", label: "MultiImages", Icon: Package },
   ];
 
   return (

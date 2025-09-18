@@ -3,10 +3,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabaseClient';
 import toast, { Toaster } from 'react-hot-toast';
+import { Pencil, Trash2, Check, X } from 'lucide-react';
+
+// تعريف نوع البيانات للـ deliveries
+interface Delivery {
+  id: number;
+  salary: string; // لو salary رقم ممكن يكون number حسب قاعدة البيانات
+}
 
 export default function DeliveriesPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [newSalary, setNewSalary] = useState('');
   const [editId, setEditId] = useState<number | null>(null);
   const [editSalary, setEditSalary] = useState('');
@@ -18,7 +24,7 @@ export default function DeliveriesPage() {
       .order('id', { ascending: true });
 
     if (error) toast.error(error.message);
-    else setDeliveries(data);
+    else setDeliveries(data as Delivery[]);
   }
 
   async function addDelivery() {
@@ -52,75 +58,78 @@ export default function DeliveriesPage() {
   }, []);
 
   return (
-    <div className="max-w-lg mx-auto p-4 sm:p-6">
+    <div className="max-w-md mx-auto p-4 sm:p-6">
       <Toaster position="top-right" />
-      
-      <h1 className="text-3xl font-bold mb-6 text-center text-pink-600">
+
+      {/* Title */}
+      <h1 className="text-2xl sm:text-3xl font-extrabold mb-6 text-center text-pink-600">
         Manage Deliveries
       </h1>
 
       {/* Input + Add Button */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-col gap-3 mb-6">
         <input
           type="number"
           value={newSalary}
           onChange={(e) => setNewSalary(e.target.value)}
           placeholder="Enter salary"
-          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+          className="px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-400 text-base shadow-sm"
         />
         <button
           onClick={addDelivery}
-          className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition"
+          className="w-full bg-pink-500 text-white py-3 rounded-2xl font-semibold hover:bg-pink-600 active:scale-95 transition shadow-md"
         >
-          Add
+          + Add Delivery
         </button>
       </div>
 
       {/* List Deliveries */}
-      <ul className="space-y-3">
+      <ul className="space-y-4">
         {deliveries.map((d) => (
           <li
             key={d.id}
-            className="flex justify-between items-center bg-white p-3 rounded-lg shadow"
+            className="bg-white shadow-md rounded-2xl p-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border border-gray-100"
           >
             {editId === d.id ? (
-              // Editing Mode
-              <div className="flex flex-1 gap-2">
+              <div className="flex flex-col sm:flex-row flex-1 gap-3">
                 <input
                   type="number"
                   value={editSalary}
                   onChange={(e) => setEditSalary(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 text-base shadow-sm"
                 />
-                <button
-                  onClick={() => saveEditDelivery(d.id)}
-                  className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setEditId(null)}
-                  className="px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
-                >
-                  Cancel
-                </button>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => saveEditDelivery(d.id)}
+                    className="flex items-center justify-center px-3 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 shadow-sm"
+                  >
+                    <Check className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setEditId(null)}
+                    className="flex items-center justify-center px-3 py-2 bg-gray-300 text-gray-700 rounded-xl hover:bg-gray-400 shadow-sm"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ) : (
-              // Normal View
               <>
-                <span className="text-gray-700 font-semibold">${d.salary}</span>
-                <div className="flex gap-2">
+                <span className="text-lg font-semibold text-gray-800 text-center sm:text-left">
+                  ${d.salary}
+                </span>
+                <div className="flex justify-center sm:justify-end gap-3">
                   <button
                     onClick={() => { setEditId(d.id); setEditSalary(d.salary); }}
-                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+                    className="flex items-center justify-center p-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 shadow-sm"
                   >
-                    Edit
+                    <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => deleteDelivery(d.id)}
-                    className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
+                    className="flex items-center justify-center p-2 bg-red-500 text-white rounded-xl hover:bg-red-600 shadow-sm"
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               </>

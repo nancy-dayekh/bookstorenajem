@@ -20,6 +20,12 @@ export default function LoginPage() {
 
     if (error || !data) return toast.error('Invalid login credentials');
 
+    // ✅ خزّني session
+    localStorage.setItem('admin-auth', JSON.stringify({
+      id: data.id,
+      email: data.email,
+    }));
+
     toast.success('Welcome back!');
     router.push('/admin'); // go to dashboard
   }

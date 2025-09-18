@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
 
 export default function CheckoutsPage() {
   const [checkouts, setCheckouts] = useState<any[]>([]);
@@ -231,11 +232,15 @@ export default function CheckoutsPage() {
                   <td className="px-4 py-3">{product?.quantity || "-"}</td>
                   <td className="px-4 py-3">
                     {product?.image ? (
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-12 h-12 object-cover rounded-lg shadow-sm"
-                      />
+                      <div className="w-12 h-12 relative">
+                        <Image
+                          src={product.image}
+                          alt={product.name || "Product Image"}
+                          fill
+                          className="object-cover rounded-lg"
+                          unoptimized // تستخدم هذا إذا الصور من external بدون config
+                        />
+                      </div>
                     ) : (
                       "-"
                     )}

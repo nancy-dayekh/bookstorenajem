@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
 
 export default function ProductsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -99,7 +100,10 @@ export default function ProductsPage() {
 
   async function deleteProduct(id: number) {
     try {
-      const { error } = await supabase.from("add_products").delete().eq("id", id);
+      const { error } = await supabase
+        .from("add_products")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       toast.success("Product Deleted!");
       fetchProducts();
@@ -185,7 +189,9 @@ export default function ProductsPage() {
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
-              <option key={c.id} value={String(c.id)}>{c.name}</option>
+              <option key={c.id} value={String(c.id)}>
+                {c.name}
+              </option>
             ))}
           </select>
           <input
@@ -214,11 +220,20 @@ export default function ProductsPage() {
         <table className="min-w-full text-sm sm:text-base bg-white rounded-xl">
           <thead className="bg-pink-100">
             <tr>
-              {["Name", "Year", "Size", "Qty", "Price", "Category", "Image", "Actions"].map(
-                (title) => (
-                  <th key={title} className="p-2 sm:p-3 text-left text-gray-700">{title}</th>
-                )
-              )}
+              {[
+                "Name",
+                "Year",
+                "Size",
+                "Qty",
+                "Price",
+                "Category",
+                "Image",
+                "Actions",
+              ].map((title) => (
+                <th key={title} className="p-2 sm:p-3 text-left text-gray-700">
+                  {title}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -235,7 +250,19 @@ export default function ProductsPage() {
                   </span>
                 </td>
                 <td className="p-2 sm:p-3">
-                  {p.image && <img src={p.image} className="h-10 w-10 sm:h-14 sm:w-14 object-cover rounded-lg" />}
+                  {p.image ? (
+                    <div className="h-10 w-10 sm:h-14 sm:w-14 relative rounded-lg overflow-hidden">
+                      <Image
+                        src={p.image}
+                        alt={p.name || "Product Image"}
+                        fill
+                        className="object-cover"
+                        unoptimized // مهم للصور الخارجية من Supabase
+                      />
+                    </div>
+                  ) : (
+                    "-"
+                  )}
                 </td>
                 <td className="p-2 sm:p-3 flex gap-2">
                   <button
@@ -247,7 +274,9 @@ export default function ProductsPage() {
                         years: p.years ? String(p.years) : "",
                         quantity: p.quantity ? String(p.quantity) : "",
                         price: p.price ? String(p.price) : "",
-                        numberOfOffer: p.numberOfOffer ? String(p.numberOfOffer) : "",
+                        numberOfOffer: p.numberOfOffer
+                          ? String(p.numberOfOffer)
+                          : "",
                       });
                     }}
                     className="px-2 sm:px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
