@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -26,7 +26,9 @@ export default function CreateMultiImage() {
 
   // Fetch products
   async function fetchProducts() {
-    const { data, error } = await supabase.from("add_products").select("id,name");
+    const { data, error } = await supabase
+      .from("add_products")
+      .select("id,name");
     if (error) return toast.error("Failed to load products");
     setProducts(data || []);
   }
@@ -46,10 +48,13 @@ export default function CreateMultiImage() {
 
     if (productsError) return toast.error("Failed to load products");
 
-    const mapped = images?.map((img: any) => ({
-      ...img,
-      product_name: productsData?.find((p: any) => p.id === img.products_id)?.name || "Unknown",
-    })) || [];
+    const mapped =
+      images?.map((img: any) => ({
+        ...img,
+        product_name:
+          productsData?.find((p: any) => p.id === img.products_id)?.name ||
+          "Unknown",
+      })) || [];
 
     setMultiImages(mapped);
   }
@@ -62,18 +67,20 @@ export default function CreateMultiImage() {
   // Upload image to Supabase Storage
   async function uploadImage(file: File) {
     const fileName = `multiimages/${Date.now()}_${file.name}`;
+
+    // رفع الصورة
     const { error: uploadError } = await supabase.storage
       .from("products-images")
       .upload(fileName, file);
-
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData, error: urlError } = await supabase.storage
+    // الحصول على الرابط العام
+    const { data } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
 
-    if (urlError) throw urlError;
-    return publicUrlData.publicUrl;
+    // تصحيح: لا يوجد error، فقط publicUrl
+    return data.publicUrl;
   }
 
   // Handle create or update
@@ -96,9 +103,9 @@ export default function CreateMultiImage() {
         setEditingId(null);
         setPreviewImage(null);
       } else {
-        const { error } = await supabase.from("multiimages").insert([
-          { products_id: Number(productsId), image_path: imageUrl },
-        ]);
+        const { error } = await supabase
+          .from("multiimages")
+          .insert([{ products_id: Number(productsId), image_path: imageUrl }]);
         if (error) throw error;
         toast.success("Image added successfully!");
       }
@@ -131,7 +138,9 @@ export default function CreateMultiImage() {
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-xl">
       <Toaster position="top-right" />
-      <h2 className="text-2xl font-bold mb-6 text-center">{editingId ? "Edit MultiImage" : "Add New MultiImage"}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-center">
+        {editingId ? "Edit MultiImage" : "Add New MultiImage"}
+      </h2>
 
       {/* Form */}
       <div className="flex flex-col gap-4">
@@ -142,7 +151,9 @@ export default function CreateMultiImage() {
         >
           <option value="">Select Product</option>
           {products.map((p) => (
-            <option key={p.id} value={String(p.id)}>{p.name}</option>
+            <option key={p.id} value={String(p.id)}>
+              {p.name}
+            </option>
           ))}
         </select>
 
@@ -193,7 +204,11 @@ export default function CreateMultiImage() {
                 <td className="px-4 py-3 border">{img.id}</td>
                 <td className="px-4 py-3 border">{img.product_name}</td>
                 <td className="px-4 py-3 border">
-                  <img src={img.image_path} alt="product" className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded" />
+                  <img
+                    src={img.image_path}
+                    alt="product"
+                    className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded"
+                  />
                 </td>
                 <td className="px-4 py-3 border flex flex-col sm:flex-row sm:gap-2">
                   <button
