@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,29 +6,10 @@ import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
-type CategoryType = {
-  id: number;
-  name: string;
-};
-
-type ProductType = {
-  id: number;
-  name: string;
-  years?: number;
-  size?: string;
-  quantity?: number;
-  price?: number;
-  description?: string;
-  image?: string;
-  category_id?: number;
-  offer_status?: boolean;
-  numberOfOffer?: number;
-  is_new_collection?: boolean;
-};
-
 export default function ProductsPage() {
-  const [products, setProducts] = useState<ProductType[]>([]);
-  const [categories, setCategories] = useState<CategoryType[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: "",
     years: "",
@@ -50,13 +32,13 @@ export default function ProductsPage() {
       .select("*")
       .order("id", { ascending: true });
     if (error) toast.error(error.message);
-    else setProducts(data as ProductType[]);
+    else setProducts(data);
   }
 
   async function fetchCategories() {
     const { data, error } = await supabase.from("categories").select("*");
     if (error) toast.error(error.message);
-    else setCategories(data as CategoryType[]);
+    else setCategories(data);
   }
 
   async function uploadImage(file: File) {
@@ -67,9 +49,11 @@ export default function ProductsPage() {
 
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData, error: urlError } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
+
+    if (urlError) throw urlError;
 
     return publicUrlData.publicUrl;
   }
@@ -273,7 +257,7 @@ export default function ProductsPage() {
                         alt={p.name || "Product Image"}
                         fill
                         className="object-cover"
-                        unoptimized
+                        unoptimized // مهم للصور الخارجية من Supabase
                       />
                     </div>
                   ) : (
