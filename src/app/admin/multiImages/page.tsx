@@ -79,8 +79,7 @@ export default function CreateMultiImage() {
       .from("products-images")
       .getPublicUrl(fileName);
 
-    // تصحيح: لا يوجد error، فقط publicUrl
-    return data.publicUrl;
+    return data.publicUrl; // لا حاجة لفحص 'error'
   }
 
   // Handle create or update
