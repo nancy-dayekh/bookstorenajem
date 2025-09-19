@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -5,40 +6,21 @@ import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
-type Category = {
-  id: number;
-  name: string;
-};
-
-type Product = {
-  id: number;
-  name: string;
-  years: number | null;
-  size: string;
-  quantity: number | null;
-  price: number | null;
-  description: string;
-  image: string;
-  category_id: number;
-  offer_status: boolean;
-  numberOfOffer?: number | null;
-  is_new_collection: boolean;
-};
-
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [form, setForm] = useState<Omit<Product, "id">>({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [form, setForm] = useState({
     name: "",
-    years: null,
+    years: "",
     size: "",
-    quantity: null,
-    price: null,
+    quantity: "",
+    price: "",
     description: "",
     image: "",
-    category_id: 0,
+    category_id: "",
     offer_status: false,
-    numberOfOffer: null,
+    numberOfOffer: "",
     is_new_collection: false,
   });
   const [editId, setEditId] = useState<number | null>(null);
@@ -46,37 +28,46 @@ export default function ProductsPage() {
 
   async function fetchProducts() {
     const { data, error } = await supabase
-      .from<Product>("add_products")
+      .from("add_products")
       .select("*")
       .order("id", { ascending: true });
     if (error) toast.error(error.message);
-    else setProducts(data || []);
+    else setProducts(data);
   }
 
   async function fetchCategories() {
-    const { data, error } = await supabase.from<Category>("categories").select("*");
+    const { data, error } = await supabase.from("categories").select("*");
     if (error) toast.error(error.message);
-    else setCategories(data || []);
+    else setCategories(data);
   }
 
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage
+      .from("products-images")
+      .upload(fileName, file);
+
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage.from("products-images").getPublicUrl(fileName);
+    // ✅ getPublicUrl does not return error
+    const { data: publicUrlData } = supabase.storage
+      .from("products-images")
+      .getPublicUrl(fileName);
+
     return publicUrlData.publicUrl;
   }
 
   async function handleSave() {
     try {
       if (!form.category_id) return toast.error("Please select a category.");
+
       let imageUrl = form.image;
       if (file) imageUrl = await uploadImage(file);
 
       const productData = {
         ...form,
         image: imageUrl,
+        category_id: Number(form.category_id),
         years: form.years ? Number(form.years) : null,
         quantity: form.quantity ? Number(form.quantity) : null,
         price: form.price ? Number(form.price) : null,
@@ -84,48 +75,54 @@ export default function ProductsPage() {
       };
 
       if (editId) {
-        const { error } = await supabase.from("add_products").update(productData).eq("id", editId);
+        const { error } = await supabase
+          .from("add_products")
+          .update(productData)
+          .eq("id", editId);
         if (error) throw error;
         toast.success("Product Updated!");
         setEditId(null);
       } else {
-        const { error } = await supabase.from("add_products").insert([productData]);
+        const { error } = await supabase
+          .from("add_products")
+          .insert([productData]);
         if (error) throw error;
         toast.success("Product Added!");
       }
 
       resetForm();
       fetchProducts();
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("An unknown error occurred");
+    } catch (err: any) {
+      toast.error(err.message);
     }
   }
 
   async function deleteProduct(id: number) {
     try {
-      const { error } = await supabase.from("add_products").delete().eq("id", id);
+      const { error } = await supabase
+        .from("add_products")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       toast.success("Product Deleted!");
       fetchProducts();
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("An unknown error occurred");
+    } catch (err: any) {
+      toast.error(err.message);
     }
   }
 
   function resetForm() {
     setForm({
       name: "",
-      years: null,
+      years: "",
       size: "",
-      quantity: null,
-      price: null,
+      quantity: "",
+      price: "",
       description: "",
       image: "",
-      category_id: 0,
+      category_id: "",
       offer_status: false,
-      numberOfOffer: null,
+      numberOfOffer: "",
       is_new_collection: false,
     });
     setFile(null);
@@ -159,8 +156,8 @@ export default function ProductsPage() {
           <input
             type="number"
             placeholder="Year"
-            value={form.years || ""}
-            onChange={(e) => setForm({ ...form, years: e.target.value ? Number(e.target.value) : null })}
+            value={form.years}
+            onChange={(e) => setForm({ ...form, years: e.target.value })}
             className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <input
@@ -173,25 +170,25 @@ export default function ProductsPage() {
           <input
             type="number"
             placeholder="Quantity"
-            value={form.quantity || ""}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value ? Number(e.target.value) : null })}
+            value={form.quantity}
+            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
             className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <input
             type="number"
             placeholder="Price"
-            value={form.price || ""}
-            onChange={(e) => setForm({ ...form, price: e.target.value ? Number(e.target.value) : null })}
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
             className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <select
-            value={form.category_id || ""}
-            onChange={(e) => setForm({ ...form, category_id: Number(e.target.value) })}
+            value={form.category_id}
+            onChange={(e) => setForm({ ...form, category_id: e.target.value })}
             className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={String(c.id)}>
                 {c.name}
               </option>
             ))}
@@ -222,7 +219,16 @@ export default function ProductsPage() {
         <table className="min-w-full text-sm sm:text-base bg-white rounded-xl">
           <thead className="bg-pink-100">
             <tr>
-              {["Name", "Year", "Size", "Qty", "Price", "Category", "Image", "Actions"].map((title) => (
+              {[
+                "Name",
+                "Year",
+                "Size",
+                "Qty",
+                "Price",
+                "Category",
+                "Image",
+                "Actions",
+              ].map((title) => (
                 <th key={title} className="p-2 sm:p-3 text-left text-gray-700">
                   {title}
                 </th>
@@ -243,18 +249,14 @@ export default function ProductsPage() {
                   </span>
                 </td>
                 <td className="p-2 sm:p-3">
-                  {p.image ? (
-                    <div className="h-10 w-10 sm:h-14 sm:w-14 relative rounded-lg overflow-hidden">
-                      <Image
-                        src={p.image}
-                        alt={p.name || "Product Image"}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </div>
-                  ) : (
-                    "-"
+                  {p.image && (
+                    <Image
+                      src={p.image}
+                      alt=""
+                      width={56}
+                      height={56}
+                      className="h-10 w-10 sm:h-14 sm:w-14 object-cover rounded-lg"
+                    />
                   )}
                 </td>
                 <td className="p-2 sm:p-3 flex gap-2">
@@ -263,12 +265,13 @@ export default function ProductsPage() {
                       setEditId(p.id);
                       setForm({
                         ...p,
-                        years: p.years ?? null,
-                        quantity: p.quantity ?? null,
-                        price: p.price ?? null,
-                        category_id: p.category_id,
-                        numberOfOffer: p.numberOfOffer ?? null,
-                        image: p.image,
+                        category_id: String(p.category_id),
+                        years: p.years ? String(p.years) : "",
+                        quantity: p.quantity ? String(p.quantity) : "",
+                        price: p.price ? String(p.price) : "",
+                        numberOfOffer: p.numberOfOffer
+                          ? String(p.numberOfOffer)
+                          : "",
                       });
                     }}
                     className="px-2 sm:px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"

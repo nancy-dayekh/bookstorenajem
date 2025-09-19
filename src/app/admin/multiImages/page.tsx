@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import Image from "next/image"; // Use Next.js Image component
+import Image from "next/image";
 
 type Product = {
   id: number;
@@ -19,7 +19,7 @@ type MultiImage = {
 
 export default function CreateMultiImage() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [productsId, setProductsId] = useState("");
+  const [productsId, setProductsId] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [multiImages, setMultiImages] = useState<MultiImage[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -27,31 +27,32 @@ export default function CreateMultiImage() {
 
   // Fetch products
   async function fetchProducts() {
-    const { data, error } = await supabase
-      .from<Product>("add_products")
-      .select("id,name");
+    const { data, error } = await supabase.from("add_products").select("id,name");
     if (error) return toast.error("Failed to load products");
     setProducts(data || []);
   }
 
-  // Fetch multi-images
+  // Fetch multi-images with product names
   async function fetchMultiImages() {
     const { data: images, error: imagesError } = await supabase
-      .from<MultiImage>("multiimages")
+      .from("multiimages")
       .select("*")
       .order("id", { ascending: false });
+
     if (imagesError) return toast.error("Failed to load images");
 
     const { data: productsData, error: productsError } = await supabase
-      .from<Product>("add_products")
+      .from("add_products")
       .select("id,name");
+
     if (productsError) return toast.error("Failed to load products");
 
-    const mapped: MultiImage[] = (images || []).map((img) => ({
-      ...img,
-      product_name:
-        productsData?.find((p) => p.id === img.products_id)?.name || "Unknown",
-    }));
+    const mapped: MultiImage[] =
+      images?.map((img) => ({
+        ...img,
+        product_name:
+          productsData?.find((p) => p.id === img.products_id)?.name || "Unknown",
+      })) || [];
 
     setMultiImages(mapped);
   }
@@ -61,21 +62,21 @@ export default function CreateMultiImage() {
     fetchMultiImages();
   }, []);
 
-  // Upload image to Supabase Storage
-  async function uploadImage(file: File) {
+  async function uploadImage(file: File): Promise<string> {
     const fileName = `multiimages/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from("products-images")
       .upload(fileName, file);
+
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage
+    const { data: publicUrlData } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
-    return data.publicUrl;
+
+    return publicUrlData.publicUrl;
   }
 
-  // Handle create or update
   async function handleCreateOrUpdate() {
     if (!productsId || (!file && !previewImage)) {
       toast.error("Please select a product and choose an image");
@@ -83,7 +84,7 @@ export default function CreateMultiImage() {
     }
 
     try {
-      const imageUrl = file ? await uploadImage(file) : previewImage!;
+      const imageUrl = file ? await uploadImage(file) : (previewImage as string);
 
       if (editingId) {
         const { error } = await supabase
@@ -95,9 +96,9 @@ export default function CreateMultiImage() {
         setEditingId(null);
         setPreviewImage(null);
       } else {
-        const { error } = await supabase
-          .from("multiimages")
-          .insert([{ products_id: Number(productsId), image_path: imageUrl }]);
+        const { error } = await supabase.from("multiimages").insert([
+          { products_id: Number(productsId), image_path: imageUrl },
+        ]);
         if (error) throw error;
         toast.success("Image added successfully!");
       }
@@ -105,13 +106,13 @@ export default function CreateMultiImage() {
       setProductsId("");
       setFile(null);
       fetchMultiImages();
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("An unknown error occurred");
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Something went wrong";
+      toast.error(errorMessage);
     }
   }
 
-  // Delete image
   async function handleDelete(id: number) {
     if (!confirm("Are you sure you want to delete this image?")) return;
     const { error } = await supabase.from("multiimages").delete().eq("id", id);
@@ -120,7 +121,6 @@ export default function CreateMultiImage() {
     fetchMultiImages();
   }
 
-  // Edit image
   function handleEdit(image: MultiImage) {
     setEditingId(image.id);
     setProductsId(String(image.products_id));
@@ -155,7 +155,7 @@ export default function CreateMultiImage() {
             type="file"
             accept="image/*"
             onChange={(e) => {
-              const selectedFile = e.target.files?.[0] || null;
+              const selectedFile = e.target.files?.[0] ?? null;
               setFile(selectedFile);
               if (selectedFile) {
                 setPreviewImage(URL.createObjectURL(selectedFile));
@@ -164,13 +164,15 @@ export default function CreateMultiImage() {
             className="w-full border border-pink-200 bg-pink-50 px-4 py-3 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none text-gray-700"
           />
           {previewImage && (
-            <Image
-              src={previewImage}
-              alt="Preview"
-              width={64}
-              height={64}
-              className="absolute right-4 top-1/2 -translate-y-1/2 object-cover rounded border border-gray-300"
-            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+              <Image
+                src={previewImage}
+                alt="Preview"
+                width={64}
+                height={64}
+                className="rounded border border-gray-300 object-cover"
+              />
+            </div>
           )}
         </div>
 
@@ -201,11 +203,10 @@ export default function CreateMultiImage() {
                 <td className="px-4 py-3 border">
                   <Image
                     src={img.image_path}
-                    alt={img.product_name || "Product Image"}
+                    alt="product"
                     width={96}
                     height={96}
-                    className="object-cover rounded"
-                    unoptimized // Add this line
+                    className="rounded object-cover"
                   />
                 </td>
                 <td className="px-4 py-3 border flex flex-col sm:flex-row sm:gap-2">
