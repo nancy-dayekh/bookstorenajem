@@ -1,33 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
-
-interface Product {
-  id: number;
-  name: string;
-  years: number | null;
-  size: string;
-  quantity: number | null;
-  price: number | null;
-  description: string;
-  image: string;
-  category_id: number;
-  offer_status: boolean;
-  numberOfOffer: number | null;
-  is_new_collection: boolean;
-}
-
-interface Category {
-  id: number;
-  name: string;
-}
-
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: "",
     years: "",
@@ -44,30 +24,34 @@ export default function ProductsPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
+  // Fetch products
   async function fetchProducts() {
     const { data, error } = await supabase
       .from("add_products")
       .select("*")
       .order("id", { ascending: true });
-
     if (error) toast.error(error.message);
-    else setProducts(data as Product[]);
+    else setProducts(data);
   }
 
+  // Fetch categories
   async function fetchCategories() {
     const { data, error } = await supabase.from("categories").select("*");
     if (error) toast.error(error.message);
-    else setCategories(data as Category[]);
+    else setCategories(data);
   }
 
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
+
+    // Upload file
     const { error: uploadError } = await supabase.storage
       .from("products-images")
       .upload(fileName, file);
 
     if (uploadError) throw uploadError;
 
+    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
@@ -75,6 +59,7 @@ export default function ProductsPage() {
     return publicUrlData.publicUrl;
   }
 
+  // Save or update product
   async function handleSave() {
     try {
       if (!form.category_id) return toast.error("Please select a category.");
@@ -90,6 +75,7 @@ export default function ProductsPage() {
         quantity: form.quantity ? Number(form.quantity) : null,
         price: form.price ? Number(form.price) : null,
         numberOfOffer: form.numberOfOffer ? Number(form.numberOfOffer) : null,
+        updated_at: new Date().toISOString(),
       };
 
       if (editId) {
@@ -110,12 +96,12 @@ export default function ProductsPage() {
 
       resetForm();
       fetchProducts();
-    } catch (err) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("An unexpected error occurred.");
+    } catch (err: any) {
+      toast.error(err.message);
     }
   }
 
+  // Delete product
   async function deleteProduct(id: number) {
     try {
       const { error } = await supabase
@@ -125,12 +111,12 @@ export default function ProductsPage() {
       if (error) throw error;
       toast.success("Product Deleted!");
       fetchProducts();
-    } catch (err) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("An unexpected error occurred.");
+    } catch (err: any) {
+      toast.error(err.message);
     }
   }
 
+  // Reset form
   function resetForm() {
     setForm({
       name: "",
@@ -148,22 +134,6 @@ export default function ProductsPage() {
     setFile(null);
   }
 
-function handleChange(
-  e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-) {
-  const { name, value, type } = e.target;
-  const checked =
-    e.target instanceof HTMLInputElement && e.target.type === "checkbox"
-      ? e.target.checked
-      : undefined;
-
-  setForm((prev) => ({
-    ...prev,
-    [name]: type === "checkbox" ? checked ?? false : value,
-  }));
-}
-
-
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -176,119 +146,134 @@ function handleChange(
         Products Management
       </h1>
 
-      {/* Form Section */}
+      {/* Form Card */}
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
-          {editId ? "Edit Product" : "Add Product"}
+          Add / Edit Product
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <input
-            name="name"
+            type="text"
+            placeholder="Name"
             value={form.name}
-            onChange={handleChange}
-            placeholder="Product Name"
-            className="border p-2 rounded"
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <input
-            name="years"
+            type="number"
+            placeholder="Year"
             value={form.years}
-            onChange={handleChange}
-            placeholder="Years"
-            className="border p-2 rounded"
+            onChange={(e) => setForm({ ...form, years: e.target.value })}
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <input
-            name="size"
-            value={form.size}
-            onChange={handleChange}
+            type="text"
             placeholder="Size"
-            className="border p-2 rounded"
+            value={form.size}
+            onChange={(e) => setForm({ ...form, size: e.target.value })}
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <input
-            name="quantity"
-            value={form.quantity}
-            onChange={handleChange}
+            type="number"
             placeholder="Quantity"
-            className="border p-2 rounded"
+            value={form.quantity}
+            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <input
-            name="price"
-            value={form.price}
-            onChange={handleChange}
+            type="number"
             placeholder="Price"
-            className="border p-2 rounded"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
-          <textarea
-            name="description"
-            value={form.description}
-            onChange={handleChange}
-            placeholder="Description"
-            className="border p-2 rounded col-span-1 sm:col-span-2"
+          <input
+            type="number"
+            placeholder="Number of Offer"
+            value={form.numberOfOffer}
+            onChange={(e) =>
+              setForm({ ...form, numberOfOffer: e.target.value })
+            }
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
           <select
-            name="category_id"
             value={form.category_id}
-            onChange={handleChange}
-            className="border p-2 rounded"
+            onChange={(e) => setForm({ ...form, category_id: e.target.value })}
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={String(c.id)}>
                 {c.name}
               </option>
             ))}
           </select>
           <input
             type="file"
+            accept="image/*"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border p-2 rounded"
+            className="border px-3 py-2 rounded-lg"
           />
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="offer_status"
-              checked={form.offer_status}
-              onChange={handleChange}
-            />
-            Offer Status
-          </label>
-          <input
-            name="numberOfOffer"
-            value={form.numberOfOffer}
-            onChange={handleChange}
-            placeholder="Number Of Offer"
-            className="border p-2 rounded"
+          <textarea
+            placeholder="Description"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
           />
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="is_new_collection"
-              checked={form.is_new_collection}
-              onChange={handleChange}
-            />
-            New Collection
-          </label>
-        </div>
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.offer_status}
+                onChange={(e) =>
+                  setForm({ ...form, offer_status: e.target.checked })
+                }
+              />
+              Offer Status
+            </label>
 
-        <button
-          onClick={handleSave}
-          className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-        >
-          {editId ? "Update Product" : "Add Product"}
-        </button>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.is_new_collection}
+                onChange={(e) =>
+                  setForm({ ...form, is_new_collection: e.target.checked })
+                }
+              />
+              New Collection
+            </label>
+          </div>
+
+          <button
+            onClick={handleSave}
+            className="bg-pink-500 text-white py-2 rounded-lg font-semibold hover:bg-pink-600 transition-transform hover:scale-105"
+          >
+            {editId ? "Save Changes" : "Add Product"}
+          </button>
+        </div>
       </div>
 
-      {/* Table Section */}
+      {/* Products Table */}
       <div className="overflow-x-auto rounded-xl shadow-md">
         <table className="min-w-full text-sm sm:text-base bg-white rounded-xl">
           <thead className="bg-pink-100">
             <tr>
-              {["Name", "Year", "Size", "Qty", "Price", "Category", "Image", "Actions"].map(
-                (title) => (
-                  <th key={title} className="p-2 sm:p-3 text-left text-gray-700">
-                    {title}
-                  </th>
-                )
-              )}
+              {[
+                "Name",
+                "Year",
+                "Size",
+                "Qty",
+                "Price",
+                "Category",
+                "Offer",
+                "New Collection",
+                "Image",
+                "Actions",
+              ].map((title) => (
+                <th key={title} className="p-2 sm:p-3 text-left text-gray-700">
+                  {title}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -304,14 +289,18 @@ function handleChange(
                     {categories.find((c) => c.id === p.category_id)?.name || ""}
                   </span>
                 </td>
+                <td className="p-2 sm:p-3">{p.offer_status ? "Yes" : "No"}</td>
+                <td className="p-2 sm:p-3">
+                  {p.is_new_collection ? "Yes" : "No"}
+                </td>
                 <td className="p-2 sm:p-3">
                   {p.image && (
                     <Image
                       src={p.image}
-                      alt={p.name}
-                      width={56}
-                      height={56}
-                      className="h-10 w-10 sm:h-14 sm:w-14 object-cover rounded-lg"
+                      alt={p.name || "product image"}
+                      width={56} // نفس h-10
+                      height={56} // نفس w-10
+                      className="object-cover rounded-lg"
                     />
                   )}
                 </td>
