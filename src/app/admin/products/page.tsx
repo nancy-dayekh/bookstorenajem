@@ -1,15 +1,33 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
+interface Product {
+  id: number;
+  name: string;
+  years: number | null;
+  size: string;
+  quantity: number | null;
+  price: number | null;
+  description: string;
+  image: string;
+  category_id: number;
+  offer_status: boolean;
+  numberOfOffer: number | null;
+  is_new_collection: boolean;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
 export default function ProductsPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState({
     name: "",
     years: "",
@@ -31,14 +49,15 @@ export default function ProductsPage() {
       .from("add_products")
       .select("*")
       .order("id", { ascending: true });
+
     if (error) toast.error(error.message);
-    else setProducts(data);
+    else setProducts(data as Product[]);
   }
 
   async function fetchCategories() {
     const { data, error } = await supabase.from("categories").select("*");
     if (error) toast.error(error.message);
-    else setCategories(data);
+    else setCategories(data as Category[]);
   }
 
   async function uploadImage(file: File) {
@@ -49,7 +68,6 @@ export default function ProductsPage() {
 
     if (uploadError) throw uploadError;
 
-    // ✅ getPublicUrl does not return error
     const { data: publicUrlData } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
@@ -92,8 +110,9 @@ export default function ProductsPage() {
 
       resetForm();
       fetchProducts();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("An unexpected error occurred.");
     }
   }
 
@@ -106,8 +125,9 @@ export default function ProductsPage() {
       if (error) throw error;
       toast.success("Product Deleted!");
       fetchProducts();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("An unexpected error occurred.");
     }
   }
 
@@ -128,6 +148,22 @@ export default function ProductsPage() {
     setFile(null);
   }
 
+function handleChange(
+  e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+) {
+  const { name, value, type } = e.target;
+  const checked =
+    e.target instanceof HTMLInputElement && e.target.type === "checkbox"
+      ? e.target.checked
+      : undefined;
+
+  setForm((prev) => ({
+    ...prev,
+    [name]: type === "checkbox" ? checked ?? false : value,
+  }));
+}
+
+
   useEffect(() => {
     fetchProducts();
     fetchCategories();
@@ -140,99 +176,119 @@ export default function ProductsPage() {
         Products Management
       </h1>
 
-      {/* Form Card */}
+      {/* Form Section */}
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
-          Add / Edit Product
+          {editId ? "Edit Product" : "Add Product"}
         </h2>
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input
-            type="text"
-            placeholder="Name"
+            name="name"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
+            onChange={handleChange}
+            placeholder="Product Name"
+            className="border p-2 rounded"
           />
           <input
-            type="number"
-            placeholder="Year"
+            name="years"
             value={form.years}
-            onChange={(e) => setForm({ ...form, years: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
+            onChange={handleChange}
+            placeholder="Years"
+            className="border p-2 rounded"
           />
           <input
-            type="text"
-            placeholder="Size"
+            name="size"
             value={form.size}
-            onChange={(e) => setForm({ ...form, size: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
+            onChange={handleChange}
+            placeholder="Size"
+            className="border p-2 rounded"
           />
           <input
-            type="number"
-            placeholder="Quantity"
+            name="quantity"
             value={form.quantity}
-            onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
+            onChange={handleChange}
+            placeholder="Quantity"
+            className="border p-2 rounded"
           />
           <input
-            type="number"
-            placeholder="Price"
+            name="price"
             value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
+            onChange={handleChange}
+            placeholder="Price"
+            className="border p-2 rounded"
+          />
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            placeholder="Description"
+            className="border p-2 rounded col-span-1 sm:col-span-2"
           />
           <select
+            name="category_id"
             value={form.category_id}
-            onChange={(e) => setForm({ ...form, category_id: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
+            onChange={handleChange}
+            className="border p-2 rounded"
           >
             <option value="">Select Category</option>
             {categories.map((c) => (
-              <option key={c.id} value={String(c.id)}>
+              <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
           </select>
           <input
             type="file"
-            accept="image/*"
             onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border px-3 py-2 rounded-lg"
+            className="border p-2 rounded"
           />
-          <textarea
-            placeholder="Description"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="offer_status"
+              checked={form.offer_status}
+              onChange={handleChange}
+            />
+            Offer Status
+          </label>
+          <input
+            name="numberOfOffer"
+            value={form.numberOfOffer}
+            onChange={handleChange}
+            placeholder="Number Of Offer"
+            className="border p-2 rounded"
           />
-          <button
-            onClick={handleSave}
-            className="bg-pink-500 text-white py-2 rounded-lg font-semibold hover:bg-pink-600 transition-transform hover:scale-105"
-          >
-            {editId ? "Save Changes" : "Add Product"}
-          </button>
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              name="is_new_collection"
+              checked={form.is_new_collection}
+              onChange={handleChange}
+            />
+            New Collection
+          </label>
         </div>
+
+        <button
+          onClick={handleSave}
+          className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+        >
+          {editId ? "Update Product" : "Add Product"}
+        </button>
       </div>
 
-      {/* Products Table */}
+      {/* Table Section */}
       <div className="overflow-x-auto rounded-xl shadow-md">
         <table className="min-w-full text-sm sm:text-base bg-white rounded-xl">
           <thead className="bg-pink-100">
             <tr>
-              {[
-                "Name",
-                "Year",
-                "Size",
-                "Qty",
-                "Price",
-                "Category",
-                "Image",
-                "Actions",
-              ].map((title) => (
-                <th key={title} className="p-2 sm:p-3 text-left text-gray-700">
-                  {title}
-                </th>
-              ))}
+              {["Name", "Year", "Size", "Qty", "Price", "Category", "Image", "Actions"].map(
+                (title) => (
+                  <th key={title} className="p-2 sm:p-3 text-left text-gray-700">
+                    {title}
+                  </th>
+                )
+              )}
             </tr>
           </thead>
           <tbody>
@@ -252,7 +308,7 @@ export default function ProductsPage() {
                   {p.image && (
                     <Image
                       src={p.image}
-                      alt=""
+                      alt={p.name}
                       width={56}
                       height={56}
                       className="h-10 w-10 sm:h-14 sm:w-14 object-cover rounded-lg"
