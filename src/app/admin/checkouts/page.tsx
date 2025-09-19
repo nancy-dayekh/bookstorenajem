@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getSupabase } from "../../../../lib/supabaseClient";
+import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
@@ -10,7 +10,6 @@ export default function CheckoutsPage() {
   const [checkouts, setCheckouts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
-  const supabase = getSupabase();
 
   const [form, setForm] = useState({
     first_name: "",

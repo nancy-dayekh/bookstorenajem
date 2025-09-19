@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getSupabase } from "../../../../lib/supabaseClient";
+import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 export default function ProductsPage() {
@@ -23,7 +23,6 @@ export default function ProductsPage() {
   });
   const [editId, setEditId] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const supabase = getSupabase();
 
   // Fetch products
   async function fetchProducts() {

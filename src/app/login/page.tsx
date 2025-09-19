@@ -1,14 +1,13 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getSupabase } from "../../../lib/supabaseClient";
+import { supabase } from "../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const supabase = getSupabase();
 
   async function handleLogin() {
     const { data, error } = await supabase

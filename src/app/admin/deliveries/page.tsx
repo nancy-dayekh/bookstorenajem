@@ -1,61 +1,50 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { getSupabase } from "../../../../lib/supabaseClient";
-import toast, { Toaster } from "react-hot-toast";
-import { Pencil, Trash2, Check, X } from "lucide-react";
-
-// تعريف نوع البيانات للـ deliveries
-interface Delivery {
-  id: number;
-  salary: string; // لو salary رقم ممكن يكون number حسب قاعدة البيانات
-}
+import { useState, useEffect } from 'react';
+import { supabase } from '../../../../lib/supabaseClient';
+import toast, { Toaster } from 'react-hot-toast';
+import { Pencil, Trash2, Check, X } from 'lucide-react';
 
 export default function DeliveriesPage() {
-  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
-  const [newSalary, setNewSalary] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [newSalary, setNewSalary] = useState('');
   const [editId, setEditId] = useState<number | null>(null);
-  const [editSalary, setEditSalary] = useState("");
-  const supabase = getSupabase();
+  const [editSalary, setEditSalary] = useState('');
 
   async function fetchDeliveries() {
     const { data, error } = await supabase
-      .from("deliveries")
-      .select("*")
-      .order("id", { ascending: true });
+      .from('deliveries')
+      .select('*')
+      .order('id', { ascending: true });
 
     if (error) toast.error(error.message);
-    else setDeliveries(data as Delivery[]);
+    else setDeliveries(data);
   }
 
   async function addDelivery() {
-    if (!newSalary.trim()) return toast.error("Salary cannot be empty");
-    const { error } = await supabase
-      .from("deliveries")
-      .insert([{ salary: newSalary }]);
+    if (!newSalary.trim()) return toast.error('Salary cannot be empty');
+    const { error } = await supabase.from('deliveries').insert([{ salary: newSalary }]);
     if (error) return toast.error(error.message);
-    toast.success("Salary Added");
-    setNewSalary("");
+    toast.success('Salary Added');
+    setNewSalary('');
     fetchDeliveries();
   }
 
   async function deleteDelivery(id: number) {
-    const { error } = await supabase.from("deliveries").delete().eq("id", id);
+    const { error } = await supabase.from('deliveries').delete().eq('id', id);
     if (error) return toast.error(error.message);
-    toast.success("Salary Deleted");
+    toast.success('Salary Deleted');
     fetchDeliveries();
   }
 
   async function saveEditDelivery(id: number) {
-    if (!editSalary.trim()) return toast.error("Salary cannot be empty");
-    const { error } = await supabase
-      .from("deliveries")
-      .update({ salary: editSalary })
-      .eq("id", id);
+    if (!editSalary.trim()) return toast.error('Salary cannot be empty');
+    const { error } = await supabase.from('deliveries').update({ salary: editSalary }).eq('id', id);
     if (error) return toast.error(error.message);
-    toast.success("Salary Updated");
+    toast.success('Salary Updated');
     setEditId(null);
-    setEditSalary("");
+    setEditSalary('');
     fetchDeliveries();
   }
 
@@ -126,10 +115,7 @@ export default function DeliveriesPage() {
                 </span>
                 <div className="flex justify-center sm:justify-end gap-3">
                   <button
-                    onClick={() => {
-                      setEditId(d.id);
-                      setEditSalary(d.salary);
-                    }}
+                    onClick={() => { setEditId(d.id); setEditSalary(d.salary); }}
                     className="flex items-center justify-center p-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 shadow-sm"
                   >
                     <Pencil className="h-4 w-4" />
