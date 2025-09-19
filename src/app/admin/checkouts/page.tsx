@@ -232,15 +232,13 @@ export default function CheckoutsPage() {
                   <td className="px-4 py-3">{product?.quantity || "-"}</td>
                   <td className="px-4 py-3">
                     {product?.image ? (
-                      <div className="w-12 h-12 relative">
-                        <Image
-                          src={product.image}
-                          alt={product.name || "Product Image"}
-                          fill
-                          className="object-cover rounded-lg"
-                          unoptimized // تستخدم هذا إذا الصور من external بدون config
-                        />
-                      </div>
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        width={48} // 12 * 4 (tailwind rem -> px)
+                        height={48}
+                        className="rounded-lg shadow-sm object-cover"
+                      />
                     ) : (
                       "-"
                     )}
