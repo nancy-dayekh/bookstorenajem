@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../../../../lib/supabaseClient';
-import toast, { Toaster } from 'react-hot-toast';
-import { Pencil, Trash2, Check, X } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { getSupabase } from "../../../../lib/supabaseClient";
+import toast, { Toaster } from "react-hot-toast";
+import { Pencil, Trash2, Check, X } from "lucide-react";
 
 // تعريف نوع البيانات لجدول categories
 interface Category {
@@ -13,43 +13,50 @@ interface Category {
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCategory, setNewCategory] = useState('');
+  const [newCategory, setNewCategory] = useState("");
   const [editId, setEditId] = useState<number | null>(null);
-  const [editName, setEditName] = useState('');
+  const [editName, setEditName] = useState("");
+  const supabase = getSupabase();
 
   async function fetchCategories() {
     const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .order('id', { ascending: true });
+      .from("categories")
+      .select("*")
+      .order("id", { ascending: true });
 
     if (error) toast.error(error.message);
     else setCategories(data as Category[]);
   }
 
   async function addCategory() {
-    if (!newCategory.trim()) return toast.error('Category name cannot be empty');
-    const { error } = await supabase.from('categories').insert([{ name: newCategory }]);
+    if (!newCategory.trim())
+      return toast.error("Category name cannot be empty");
+    const { error } = await supabase
+      .from("categories")
+      .insert([{ name: newCategory }]);
     if (error) return toast.error(error.message);
-    toast.success('Category Added');
-    setNewCategory('');
+    toast.success("Category Added");
+    setNewCategory("");
     fetchCategories();
   }
 
   async function deleteCategory(id: number) {
-    const { error } = await supabase.from('categories').delete().eq('id', id);
+    const { error } = await supabase.from("categories").delete().eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success('Category Deleted');
+    toast.success("Category Deleted");
     fetchCategories();
   }
 
   async function saveEditCategory(id: number) {
-    if (!editName.trim()) return toast.error('Category name cannot be empty');
-    const { error } = await supabase.from('categories').update({ name: editName }).eq('id', id);
+    if (!editName.trim()) return toast.error("Category name cannot be empty");
+    const { error } = await supabase
+      .from("categories")
+      .update({ name: editName })
+      .eq("id", id);
     if (error) return toast.error(error.message);
-    toast.success('Category Updated');
+    toast.success("Category Updated");
     setEditId(null);
-    setEditName('');
+    setEditName("");
     fetchCategories();
   }
 

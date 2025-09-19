@@ -1,33 +1,36 @@
-'use client';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '../../../lib/supabaseClient';
-import toast, { Toaster } from 'react-hot-toast';
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getSupabase } from "../../../lib/supabaseClient";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const router = useRouter();
+  const supabase = getSupabase();
 
   async function handleLogin() {
     const { data, error } = await supabase
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .eq('password', password)
+      .from("admins")
+      .select("*")
+      .eq("email", email)
+      .eq("password", password)
       .single();
 
-    if (error || !data) return toast.error('Invalid login credentials');
+    if (error || !data) return toast.error("Invalid login credentials");
 
     // ✅ خزّني session
-    localStorage.setItem('admin-auth', JSON.stringify({
-      id: data.id,
-      email: data.email,
-    }));
+    localStorage.setItem(
+      "admin-auth",
+      JSON.stringify({
+        id: data.id,
+        email: data.email,
+      })
+    );
 
-    toast.success('Welcome back!');
-    router.push('/admin'); // go to dashboard
+    toast.success("Welcome back!");
+    router.push("/admin"); // go to dashboard
   }
 
   return (
