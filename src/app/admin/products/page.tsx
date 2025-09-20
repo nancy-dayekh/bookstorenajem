@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -44,14 +45,12 @@ export default function ProductsPage() {
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
 
-    // Upload file
     const { error: uploadError } = await supabase.storage
       .from("products-images")
       .upload(fileName, file);
 
     if (uploadError) throw uploadError;
 
-    // Get public URL
     const { data: publicUrlData } = supabase.storage
       .from("products-images")
       .getPublicUrl(fileName);
@@ -64,8 +63,11 @@ export default function ProductsPage() {
     try {
       if (!form.category_id) return toast.error("Please select a category.");
 
+      // استخدم الصورة القديمة إذا لم يرفع المستخدم ملف جديد
       let imageUrl = form.image;
-      if (file) imageUrl = await uploadImage(file);
+      if (file) {
+        imageUrl = await uploadImage(file);
+      }
 
       const productData = {
         ...form,
@@ -290,16 +292,14 @@ export default function ProductsPage() {
                   </span>
                 </td>
                 <td className="p-2 sm:p-3">{p.offer_status ? "Yes" : "No"}</td>
-                <td className="p-2 sm:p-3">
-                  {p.is_new_collection ? "Yes" : "No"}
-                </td>
+                <td className="p-2 sm:p-3">{p.is_new_collection ? "Yes" : "No"}</td>
                 <td className="p-2 sm:p-3">
                   {p.image && (
                     <Image
                       src={p.image}
                       alt={p.name || "product image"}
-                      width={56} // نفس h-10
-                      height={56} // نفس w-10
+                      width={56}
+                      height={56}
                       className="object-cover rounded-lg"
                     />
                   )}
@@ -314,15 +314,16 @@ export default function ProductsPage() {
                         years: p.years ? String(p.years) : "",
                         quantity: p.quantity ? String(p.quantity) : "",
                         price: p.price ? String(p.price) : "",
-                        numberOfOffer: p.numberOfOffer
-                          ? String(p.numberOfOffer)
-                          : "",
+                        numberOfOffer: p.numberOfOffer ? String(p.numberOfOffer) : "",
+                        image: p.image || "",
                       });
+                      setFile(null); // input الصورة فارغ عند Edit
                     }}
                     className="px-2 sm:px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                   >
                     Edit
                   </button>
+
                   <button
                     onClick={() => deleteProduct(p.id)}
                     className="px-2 sm:px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
