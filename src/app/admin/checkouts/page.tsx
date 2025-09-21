@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +9,7 @@ export default function CheckoutsPage() {
   const [checkouts, setCheckouts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [editId, setEditId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     first_name: "",
@@ -19,72 +19,146 @@ export default function CheckoutsPage() {
     city: "",
     region: "",
     product_id: "",
+    size: "",
+    quantity: 1,
     delivery_id: "",
     subtotal: "",
     total: "",
   });
 
-  const [editId, setEditId] = useState<number | null>(null);
-
+  // Fetch all checkouts with their items and products
   async function fetchCheckouts() {
     const { data, error } = await supabase
-      .from("checkouts")
-      .select("*")
+      .from("checkout_items")
+      .select(`
+        id,
+        quantity,
+        size,
+        checkout:checkouts (
+          id,
+          first_name,
+          last_name,
+          address,
+          phone,
+          city,
+          region,
+          subtotal,
+          total,
+          delivery_id
+        ),
+        product:add_products (
+          id,
+          name,
+          years,
+          image
+        )
+      `)
       .order("id", { ascending: false });
+
     if (error) toast.error(error.message);
     else setCheckouts(data || []);
   }
 
+  // Fetch products and deliveries for form selects
   async function fetchRelations() {
-    const { data: productsData } = await supabase
+    const { data: productsData, error: productsError } = await supabase
       .from("add_products")
-      .select("id,name,years,quantity,image");
-    const { data: deliveriesData } = await supabase
-      .from("deliveries")
-      .select("id,salary");
+      .select("id,name,years,image");
+    if (productsError) toast.error(productsError.message);
+    else setProducts(productsData || []);
 
-    setProducts(productsData || []);
-    setDeliveries(deliveriesData || []);
+    const { data: deliveriesData, error: deliveriesError } = await supabase
+      .from("deliveries")
+      .select("*");
+    if (deliveriesError) toast.error(deliveriesError.message);
+    else setDeliveries(deliveriesData || []);
   }
 
+  // Save or update checkout + checkout_item
   async function handleSave() {
     try {
       if (!form.first_name || !form.last_name || !form.address || !form.phone) {
         return toast.error("All required fields must be filled.");
       }
 
-      const checkoutData = {
-        ...form,
-        product_id: form.product_id ? Number(form.product_id) : null,
-        delivery_id: form.delivery_id ? Number(form.delivery_id) : null,
-      };
+      // Insert or update checkout
+      let checkoutId = editId;
 
-      if (editId) {
-        const { error } = await supabase
+      if (!editId) {
+        const { data: newCheckout, error } = await supabase
           .from("checkouts")
-          .update(checkoutData)
-          .eq("id", editId);
+          .insert([{
+            first_name: form.first_name,
+            last_name: form.last_name,
+            address: form.address,
+            phone: form.phone,
+            city: form.city,
+            region: form.region,
+            subtotal: form.subtotal,
+            total: form.total,
+            delivery_id: form.delivery_id ? Number(form.delivery_id) : null
+          }])
+          .select("*")
+          .single();
         if (error) throw error;
-        toast.success("Checkout Updated!");
-        setEditId(null);
+        checkoutId = newCheckout.id;
       } else {
         const { error } = await supabase
           .from("checkouts")
-          .insert([checkoutData]);
+          .update({
+            first_name: form.first_name,
+            last_name: form.last_name,
+            address: form.address,
+            phone: form.phone,
+            city: form.city,
+            region: form.region,
+            subtotal: form.subtotal,
+            total: form.total,
+            delivery_id: form.delivery_id ? Number(form.delivery_id) : null
+          })
+          .eq("id", editId);
+        if (error) throw error;
+      }
+
+      // Insert or update checkout item
+      if (!editId) {
+        const { error } = await supabase
+          .from("checkout_items")
+          .insert([{
+            checkout_id: checkoutId,
+            product_id: Number(form.product_id),
+            size: form.size,
+            quantity: Number(form.quantity)
+          }]);
         if (error) throw error;
         toast.success("Checkout Added!");
+      } else {
+        const item = checkouts.find((i) => i.checkout.id === editId);
+        if (item) {
+          const { error } = await supabase
+            .from("checkout_items")
+            .update({
+              product_id: Number(form.product_id),
+              size: form.size,
+              quantity: Number(form.quantity)
+            })
+            .eq("id", item.id);
+          if (error) throw error;
+          toast.success("Checkout Updated!");
+        }
       }
 
       resetForm();
+      setEditId(null);
       fetchCheckouts();
     } catch (err: any) {
       toast.error(err.message);
     }
   }
 
-  async function deleteCheckout(id: number) {
+  async function deleteCheckout(checkoutId: number) {
     try {
-      const { error } = await supabase.from("checkouts").delete().eq("id", id);
+      const { error } = await supabase.from("checkouts").delete().eq("id", checkoutId);
       if (error) throw error;
       toast.success("Checkout Deleted!");
       fetchCheckouts();
@@ -102,6 +176,8 @@ export default function CheckoutsPage() {
       city: "",
       region: "",
       product_id: "",
+      size: "",
+      quantity: 1,
       delivery_id: "",
       subtotal: "",
       total: "",
@@ -120,30 +196,19 @@ export default function CheckoutsPage() {
         Checkout Management
       </h1>
 
-      {/* ✅ Form with baby pink inputs */}
+      {/* ✅ Form */}
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
           Add / Edit Checkout
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {[
-            { name: "first_name", placeholder: "First Name" },
-            { name: "last_name", placeholder: "Last Name" },
-            { name: "address", placeholder: "Address" },
-            { name: "phone", placeholder: "Phone" },
-            { name: "city", placeholder: "City" },
-            { name: "region", placeholder: "Region" },
-            { name: "subtotal", placeholder: "Subtotal" },
-            { name: "total", placeholder: "Total" },
-          ].map((input) => (
+          {["first_name", "last_name", "address", "phone", "city", "region", "subtotal", "total"].map((field) => (
             <input
-              key={input.name}
+              key={field}
               type="text"
-              placeholder={input.placeholder}
-              value={(form as any)[input.name]}
-              onChange={(e) =>
-                setForm({ ...form, [input.name]: e.target.value })
-              }
+              placeholder={field.replace("_", " ").toUpperCase()}
+              value={(form as any)[field]}
+              onChange={(e) => setForm({ ...form, [field]: e.target.value })}
               className="border border-pink-200 bg-pink-50 text-gray-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none"
             />
           ))}
@@ -160,6 +225,23 @@ export default function CheckoutsPage() {
               </option>
             ))}
           </select>
+
+          <input
+            type="text"
+            placeholder="Size"
+            value={form.size}
+            onChange={(e) => setForm({ ...form, size: e.target.value })}
+            className="border border-pink-200 bg-pink-50 text-gray-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none"
+          />
+
+          <input
+            type="number"
+            placeholder="Quantity"
+            value={form.quantity}
+            min={1}
+            onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+            className="border border-pink-200 bg-pink-50 text-gray-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none"
+          />
 
           <select
             value={form.delivery_id}
@@ -196,72 +278,61 @@ export default function CheckoutsPage() {
                 "Region",
                 "Product",
                 "Years",
+                "Size",
                 "Quantity",
                 "Image",
                 "Subtotal",
                 "Total",
                 "Delivery / Actions",
               ].map((title) => (
-                <th key={title} className="px-4 py-3 text-left">
-                  {title}
-                </th>
+                <th key={title} className="px-4 py-3 text-left">{title}</th>
               ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {checkouts.map((c) => {
-              const product = products.find((p) => p.id === c.product_id);
-              const delivery = deliveries.find(
-                (d) => d.id === Number(c.delivery_id)
-              );
+            {checkouts.map((item) => {
+              const checkout = item.checkout;
+              const product = item.product;
+              const delivery = deliveries.find((d) => d.id === checkout.delivery_id);
 
               return (
-                <tr
-                  key={c.id}
-                  className="hover:bg-gray-50 transition-colors duration-150"
-                >
-                  <td className="px-4 py-3 font-medium">
-                    {c.first_name} {c.last_name}
-                  </td>
-                  <td className="px-4 py-3">{c.address}</td>
-                  <td className="px-4 py-3">{c.phone}</td>
-                  <td className="px-4 py-3">{c.city}</td>
-                  <td className="px-4 py-3">{c.region}</td>
+                <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150">
+                  <td className="px-4 py-3 font-medium">{checkout.first_name} {checkout.last_name}</td>
+                  <td className="px-4 py-3">{checkout.address}</td>
+                  <td className="px-4 py-3">{checkout.phone}</td>
+                  <td className="px-4 py-3">{checkout.city}</td>
+                  <td className="px-4 py-3">{checkout.region}</td>
                   <td className="px-4 py-3">{product?.name || "-"}</td>
                   <td className="px-4 py-3">{product?.years || "-"}</td>
-                  <td className="px-4 py-3">{product?.quantity || "-"}</td>
+                  <td className="px-4 py-3">{item.size || "-"}</td>
+                  <td className="px-4 py-3">{item.quantity}</td>
                   <td className="px-4 py-3">
                     {product?.image ? (
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        width={48} // 12 * 4 (tailwind rem -> px)
-                        height={48}
-                        className="rounded-lg shadow-sm object-cover"
-                      />
-                    ) : (
-                      "-"
-                    )}
+                      <Image src={product.image} alt={product.name} width={48} height={48} className="rounded-lg shadow-sm object-cover" />
+                    ) : "-"}
                   </td>
-                  <td className="px-4 py-3">{c.subtotal}</td>
-                  <td className="px-4 py-3">{c.total}</td>
+                  <td className="px-4 py-3">{checkout.subtotal}</td>
+                  <td className="px-4 py-3">{checkout.total}</td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center gap-2">
-                      <span className="text-sm text-gray-600">
-                        {delivery ? `$${delivery.salary}` : "-"}
-                      </span>
+                      <span className="text-sm text-gray-600">{delivery ? `$${delivery.salary}` : "-"}</span>
                       <div className="flex gap-2">
                         <button
                           onClick={() => {
-                            setEditId(c.id);
+                            setEditId(checkout.id);
                             setForm({
-                              ...c,
-                              product_id: c.product_id
-                                ? String(c.product_id)
-                                : "",
-                              delivery_id: c.delivery_id
-                                ? String(c.delivery_id)
-                                : "",
+                              first_name: checkout.first_name,
+                              last_name: checkout.last_name,
+                              address: checkout.address,
+                              phone: checkout.phone,
+                              city: checkout.city,
+                              region: checkout.region,
+                              subtotal: checkout.subtotal,
+                              total: checkout.total,
+                              product_id: product?.id ? String(product.id) : "",
+                              size: item.size,
+                              quantity: item.quantity,
+                              delivery_id: checkout.delivery_id ? String(checkout.delivery_id) : "",
                             });
                           }}
                           className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
@@ -269,7 +340,7 @@ export default function CheckoutsPage() {
                           Edit
                         </button>
                         <button
-                          onClick={() => deleteCheckout(c.id)}
+                          onClick={() => deleteCheckout(checkout.id)}
                           className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
                         >
                           Delete
