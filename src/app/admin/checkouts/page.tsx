@@ -53,13 +53,13 @@ export default function CheckoutsPage() {
           image
         )
       `)
-      .order("id", { ascending: false });
+      .order("checkout_id", { ascending: false })
+      .order("id", { ascending: true });
 
     if (error) toast.error(error.message);
     else setCheckouts(data || []);
   }
 
-  // Fetch products and deliveries for form selects
   async function fetchRelations() {
     const { data: productsData, error: productsError } = await supabase
       .from("add_products")
@@ -74,14 +74,12 @@ export default function CheckoutsPage() {
     else setDeliveries(deliveriesData || []);
   }
 
-  // Save or update checkout + checkout_item
   async function handleSave() {
     try {
       if (!form.first_name || !form.last_name || !form.address || !form.phone) {
         return toast.error("All required fields must be filled.");
       }
 
-      // Insert or update checkout
       let checkoutId = editId;
 
       if (!editId) {
@@ -120,7 +118,6 @@ export default function CheckoutsPage() {
         if (error) throw error;
       }
 
-      // Insert or update checkout item
       if (!editId) {
         const { error } = await supabase
           .from("checkout_items")
@@ -189,6 +186,17 @@ export default function CheckoutsPage() {
     fetchRelations();
   }, []);
 
+  // Group checkouts by customer
+  const groupedCheckouts = checkouts.reduce((acc: any[], item) => {
+    const existing = acc.find(c => c.id === item.checkout.id);
+    if (existing) {
+      existing.items.push(item);
+    } else {
+      acc.push({ ...item.checkout, items: [item] });
+    }
+    return acc;
+  }, []);
+
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-6">
       <Toaster position="top-right" />
@@ -196,7 +204,7 @@ export default function CheckoutsPage() {
         Checkout Management
       </h1>
 
-      {/* ✅ Form */}
+      {/* Form */}
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
           Add / Edit Checkout
@@ -265,7 +273,7 @@ export default function CheckoutsPage() {
         </div>
       </div>
 
-      {/* ✅ Table */}
+      {/* Table */}
       <div className="overflow-x-auto shadow-md rounded-xl border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-pink-100 text-gray-700">
@@ -276,8 +284,7 @@ export default function CheckoutsPage() {
                 "Phone",
                 "City",
                 "Region",
-                "Product",
-                "Years",
+                "Products",
                 "Size",
                 "Quantity",
                 "Image",
@@ -289,68 +296,85 @@ export default function CheckoutsPage() {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
-            {checkouts.map((item) => {
-              const checkout = item.checkout;
-              const product = item.product;
-              const delivery = deliveries.find((d) => d.id === checkout.delivery_id);
-
-              return (
-                <tr key={item.id} className="hover:bg-gray-50 transition-colors duration-150">
-                  <td className="px-4 py-3 font-medium">{checkout.first_name} {checkout.last_name}</td>
-                  <td className="px-4 py-3">{checkout.address}</td>
-                  <td className="px-4 py-3">{checkout.phone}</td>
-                  <td className="px-4 py-3">{checkout.city}</td>
-                  <td className="px-4 py-3">{checkout.region}</td>
-                  <td className="px-4 py-3">{product?.name || "-"}</td>
-                  <td className="px-4 py-3">{product?.years || "-"}</td>
-                  <td className="px-4 py-3">{item.size || "-"}</td>
-                  <td className="px-4 py-3">{item.quantity}</td>
-                  <td className="px-4 py-3">
-                    {product?.image ? (
-                      <Image src={product.image} alt={product.name} width={48} height={48} className="rounded-lg shadow-sm object-cover" />
-                    ) : "-"}
-                  </td>
-                  <td className="px-4 py-3">{checkout.subtotal}</td>
-                  <td className="px-4 py-3">{checkout.total}</td>
-                  <td className="px-4 py-3 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <span className="text-sm text-gray-600">{delivery ? `$${delivery.salary}` : "-"}</span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setEditId(checkout.id);
-                            setForm({
-                              first_name: checkout.first_name,
-                              last_name: checkout.last_name,
-                              address: checkout.address,
-                              phone: checkout.phone,
-                              city: checkout.city,
-                              region: checkout.region,
-                              subtotal: checkout.subtotal,
-                              total: checkout.total,
-                              product_id: product?.id ? String(product.id) : "",
-                              size: item.size,
-                              quantity: item.quantity,
-                              delivery_id: checkout.delivery_id ? String(checkout.delivery_id) : "",
-                            });
-                          }}
-                          className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => deleteCheckout(checkout.id)}
-                          className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+          <tbody>
+            {groupedCheckouts.map((checkout) => (
+              <>
+                {checkout.items.map((item: any, index: number) => (
+                  <tr
+                    key={item.id}
+                    className={`transition-colors duration-150 ${
+                      index % 2 === 0 ? "bg-white hover:bg-pink-50" : "bg-pink-50 hover:bg-pink-100"
+                    }`}
+                  >
+                    {index === 0 && (
+                      <>
+                        <td className="px-4 py-3 font-medium" rowSpan={checkout.items.length}>
+                          {checkout.first_name} {checkout.last_name}
+                        </td>
+                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.address}</td>
+                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.phone}</td>
+                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.city}</td>
+                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.region}</td>
+                      </>
+                    )}
+                    <td className="px-4 py-3">{item.product?.name || "-"}</td>
+                    <td className="px-4 py-3">{item.size || "-"}</td>
+                    <td className="px-4 py-3">{item.quantity}</td>
+                    <td className="px-4 py-3">
+                      {item.product?.image ? (
+                        <Image src={item.product.image} alt={item.product.name} width={48} height={48} className="rounded-lg shadow-sm object-cover" />
+                      ) : "-"}
+                    </td>
+                    {index === 0 && (
+                      <>
+                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.subtotal}</td>
+                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.total}</td>
+                        <td className="px-4 py-3 text-center" rowSpan={checkout.items.length}>
+                          <div className="flex flex-col items-center gap-2">
+                            <span className="text-sm text-gray-600">
+                              {deliveries.find(d => d.id === checkout.delivery_id)
+                                ? `$${deliveries.find(d => d.id === checkout.delivery_id).salary}`
+                                : "-"}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditId(checkout.id);
+                                  const firstItem = checkout.items[0];
+                                  setForm({
+                                    first_name: checkout.first_name,
+                                    last_name: checkout.last_name,
+                                    address: checkout.address,
+                                    phone: checkout.phone,
+                                    city: checkout.city,
+                                    region: checkout.region,
+                                    subtotal: checkout.subtotal,
+                                    total: checkout.total,
+                                    product_id: firstItem.product?.id ? String(firstItem.product.id) : "",
+                                    size: firstItem.size,
+                                    quantity: firstItem.quantity,
+                                    delivery_id: checkout.delivery_id ? String(checkout.delivery_id) : "",
+                                  });
+                                }}
+                                className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => deleteCheckout(checkout.id)}
+                                className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </>
+            ))}
           </tbody>
         </table>
       </div>
