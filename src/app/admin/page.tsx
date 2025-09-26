@@ -18,9 +18,16 @@ import {
 
 // Types
 type Order = {
-  id: number | string;
+  id: string | number;
   total: number | string;
   created_at: string;
+};
+
+type CheckoutItem = {
+  quantity: number;
+  add_products?: {
+    name: string;
+  };
 };
 
 type TopProduct = {
@@ -34,6 +41,7 @@ type MonthlyData = {
 };
 
 export default function AdminDashboard() {
+  // Orders array is now typed correctly
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersCount, setOrdersCount] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
@@ -46,12 +54,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        // جلب الطلبات
         const { data: checkouts, error: checkoutsError } = await supabase
           .from<Order>("checkouts")
           .select("id,total,created_at");
+
         if (checkoutsError) throw checkoutsError;
 
+        // orders متغير مستخدم لاحقاً للتقارير
         setOrders(checkouts || []);
         setOrdersCount(checkouts?.length || 0);
 
@@ -69,12 +78,14 @@ export default function AdminDashboard() {
 
         // أكثر المنتجات مبيعًا
         const { data: items, error: itemsError } = await supabase
-          .from("checkout_items")
-          .select("quantity, add_products(name)");
+          .from<CheckoutItem>("checkout_items")
+          .select("quantity, add_products(name)")
+          .order("quantity", { ascending: false });
+
         if (itemsError) throw itemsError;
 
-        const productSales: { [key: string]: number } = {};
-        (items || []).forEach((item: any) => {
+        const productSales: Record<string, number> = {};
+        (items || []).forEach((item) => {
           const productName = item.add_products?.name || "Unknown Product";
           productSales[productName] = (productSales[productName] || 0) + item.quantity;
         });
@@ -90,11 +101,12 @@ export default function AdminDashboard() {
         const { data: allProducts, error: productsError } = await supabase
           .from("add_products")
           .select("id");
+
         if (productsError) throw productsError;
 
         setTotalProducts(allProducts?.length || 0);
-      } catch (err: any) {
-        console.error("Error fetching dashboard data:", err.message);
+      } catch (err: unknown) {
+        if (err instanceof Error) console.error("Error fetching dashboard data:", err.message);
       }
     }
 
@@ -117,7 +129,6 @@ export default function AdminDashboard() {
     setMonthlyData(monthly);
   };
 
-  // ألوان Pink
   const COLORS = ["#ec4899", "#f472b6", "#f9a8d4", "#db2777", "#be185d"];
 
   return (
@@ -126,27 +137,24 @@ export default function AdminDashboard() {
         🛍️ Admin Dashboard
       </h1>
 
-      {/* Top Cards */}
+      {/* Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Orders</h2>
           <p className="text-4xl sm:text-5xl font-bold text-pink-500">{ordersCount}</p>
         </div>
-
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Revenue</h2>
           <p className="text-4xl sm:text-5xl font-bold text-pink-600">
             ${totalRevenue.toFixed(2)}
           </p>
         </div>
-
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Average Order</h2>
           <p className="text-4xl sm:text-5xl font-bold text-pink-400">
             {ordersCount > 0 ? `$${(totalRevenue / ordersCount).toFixed(2)}` : "-"}
           </p>
         </div>
-
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Products</h2>
           <p className="text-4xl sm:text-5xl font-bold text-pink-700">{totalProducts}</p>
