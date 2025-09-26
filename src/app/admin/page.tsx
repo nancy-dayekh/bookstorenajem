@@ -27,7 +27,7 @@ type CheckoutItem = {
   quantity: number;
   add_products?: {
     name: string;
-  }[]; // <-- array
+  };
 };
 
 type TopProduct = {
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
         setYears(uniqueYears);
         calculateMonthlyRevenue(typedCheckouts, selectedYear);
 
-        // Fetch checkout items
+        // Fetch top products
         const { data: items, error: itemsError } = await supabase
           .from("checkout_items")
           .select("quantity, add_products(name)")
@@ -83,17 +83,10 @@ export default function AdminDashboard() {
 
         const typedItems = (items || []) as CheckoutItem[];
 
-        // Compute top products
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
-          if (item.add_products) {
-            item.add_products.forEach((p) => {
-              const productName = p.name || "Unknown Product";
-              productSales[productName] = (productSales[productName] || 0) + item.quantity;
-            });
-          } else {
-            productSales["Unknown Product"] = (productSales["Unknown Product"] || 0) + item.quantity;
-          }
+          const productName = item.add_products?.name || "Unknown Product";
+          productSales[productName] = (productSales[productName] || 0) + item.quantity;
         });
 
         const topProductsArray: TopProduct[] = Object.entries(productSales)
