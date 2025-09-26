@@ -53,6 +53,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
+        // Fetch orders
         const { data: checkouts, error: checkoutsError } = await supabase
           .from("checkouts")
           .select("id,total,created_at");
@@ -74,14 +75,16 @@ export default function AdminDashboard() {
 
         // Fetch top products
         const { data: items, error: itemsError } = await supabase
-          .from<CheckoutItem>("checkout_items")
+          .from("checkout_items")
           .select("quantity, add_products(name)")
           .order("quantity", { ascending: false });
 
         if (itemsError) throw itemsError;
 
+        const typedItems = (items || []) as CheckoutItem[];
+
         const productSales: Record<string, number> = {};
-        (items || []).forEach((item) => {
+        typedItems.forEach((item) => {
           const productName = item.add_products?.name || "Unknown Product";
           productSales[productName] = (productSales[productName] || 0) + item.quantity;
         });
@@ -93,7 +96,7 @@ export default function AdminDashboard() {
 
         setTopProducts(topProductsArray);
 
-        // Total products
+        // Fetch total products
         const { data: allProducts, error: productsError } = await supabase
           .from("add_products")
           .select("id");
