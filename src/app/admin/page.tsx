@@ -16,54 +16,70 @@ import {
   Legend,
 } from "recharts";
 
+// Types
+type Order = {
+  id: number | string;
+  total: number | string;
+  created_at: string;
+};
+
+type TopProduct = {
+  name: string;
+  quantity: number;
+};
+
+type MonthlyData = {
+  month: string;
+  revenue: number;
+};
+
 export default function AdminDashboard() {
-  const [orders, setOrders] = useState([]);
-  const [ordersCount, setOrdersCount] = useState(0);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0); // عدد المنتجات الفعلي
-  const [monthlyData, setMonthlyData] = useState([]);
-  const [years, setYears] = useState([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [topProducts, setTopProducts] = useState([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersCount, setOrdersCount] = useState<number>(0);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [totalProducts, setTotalProducts] = useState<number>(0);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [years, setYears] = useState<number[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         // جلب الطلبات
         const { data: checkouts, error: checkoutsError } = await supabase
-          .from("checkouts")
+          .from<Order>("checkouts")
           .select("id,total,created_at");
         if (checkoutsError) throw checkoutsError;
 
-        setOrders(checkouts);
-        setOrdersCount(checkouts.length);
-        const total = checkouts.reduce((sum, c) => sum + Number(c.total), 0);
+        setOrders(checkouts || []);
+        setOrdersCount(checkouts?.length || 0);
+
+        const total = (checkouts || []).reduce((sum, c) => sum + Number(c.total), 0);
         setTotalRevenue(total);
 
         // السنوات الفريدة
         const uniqueYears = [
           ...new Set(
-            checkouts.map((c) => new Date(c.created_at).getFullYear())
+            (checkouts || []).map((c) => new Date(c.created_at).getFullYear())
           ),
         ];
         setYears(uniqueYears);
-        calculateMonthlyRevenue(checkouts, selectedYear);
+        calculateMonthlyRevenue(checkouts || [], selectedYear);
 
         // أكثر المنتجات مبيعًا
         const { data: items, error: itemsError } = await supabase
           .from("checkout_items")
-          .select("quantity, add_products(name)")
-          .order("quantity", { ascending: false });
+          .select("quantity, add_products(name)");
         if (itemsError) throw itemsError;
 
-        const productSales = {};
-        items.forEach((item) => {
+        const productSales: { [key: string]: number } = {};
+        (items || []).forEach((item: any) => {
           const productName = item.add_products?.name || "Unknown Product";
-          productSales[productName] =
-            (productSales[productName] || 0) + item.quantity;
+          productSales[productName] = (productSales[productName] || 0) + item.quantity;
         });
 
-        const topProductsArray = Object.entries(productSales)
+        const topProductsArray: TopProduct[] = Object.entries(productSales)
           .map(([name, quantity]) => ({ name, quantity }))
           .sort((a, b) => b.quantity - a.quantity)
           .slice(0, 5);
@@ -76,8 +92,8 @@ export default function AdminDashboard() {
           .select("id");
         if (productsError) throw productsError;
 
-        setTotalProducts(allProducts.length);
-      } catch (err) {
+        setTotalProducts(allProducts?.length || 0);
+      } catch (err: any) {
         console.error("Error fetching dashboard data:", err.message);
       }
     }
@@ -85,8 +101,8 @@ export default function AdminDashboard() {
     fetchDashboardData();
   }, [selectedYear]);
 
-  const calculateMonthlyRevenue = (checkouts, year) => {
-    const monthly = Array.from({ length: 12 }, (_, i) => ({
+  const calculateMonthlyRevenue = (checkouts: Order[], year: number) => {
+    const monthly: MonthlyData[] = Array.from({ length: 12 }, (_, i) => ({
       month: new Date(0, i).toLocaleString("default", { month: "short" }),
       revenue: 0,
     }));
@@ -105,8 +121,8 @@ export default function AdminDashboard() {
   const COLORS = ["#ec4899", "#f472b6", "#f9a8d4", "#db2777", "#be185d"];
 
   return (
-    <div className="p-6 sm:p-10 bg-gray-50 min-h-screen space-y-10">
-      <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
+    <div className="p-4 sm:p-10 bg-gray-50 min-h-screen space-y-10">
+      <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 tracking-tight">
         🛍️ Admin Dashboard
       </h1>
 
@@ -114,25 +130,32 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Orders</h2>
-          <p className="text-5xl font-bold text-pink-500">{ordersCount}</p>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-500">{ordersCount}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Revenue</h2>
-          <p className="text-5xl font-bold text-pink-600">
+          <p className="text-4xl sm:text-5xl font-bold text-pink-600">
             ${totalRevenue.toFixed(2)}
           </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
+          <h2 className="text-lg font-medium text-gray-500">Average Order</h2>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-400">
+            {ordersCount > 0 ? `$${(totalRevenue / ordersCount).toFixed(2)}` : "-"}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Products</h2>
-          <p className="text-5xl font-bold text-pink-700">{totalProducts}</p>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-700">{totalProducts}</p>
         </div>
       </div>
 
       {/* Year Filter */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-semibold text-gray-800">
+        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">
           Revenue by Month ({selectedYear})
         </h2>
         <select
@@ -147,7 +170,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Monthly Revenue Chart */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyData}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -160,8 +183,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Top Products Pie Chart */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+      <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4">
           🏆 Top Selling Products
         </h2>
         <ResponsiveContainer width="100%" height={300}>
