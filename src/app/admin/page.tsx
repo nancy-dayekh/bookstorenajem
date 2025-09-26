@@ -81,7 +81,7 @@ export default function AdminDashboard() {
 
         if (itemsError) throw itemsError;
 
-        const typedItems = (items || []) as CheckoutItem[];
+        const typedItems = (items || []) as unknown as CheckoutItem[];
 
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
