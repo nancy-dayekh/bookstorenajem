@@ -1,18 +1,28 @@
 import twilio from "twilio";
 
-export async function POST(req) {
-  const { to, body } = await req.json();
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { to, body } = req.body;
+
+  // Make sure you replaced YOUR_AUTH_TOKEN with the real one
   const client = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
 
   try {
+    console.log("Sending SMS to:", to);
+    console.log("Message body:", body);
+
     await client.messages.create({
       body,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to
+      to,
     });
-    return new Response(JSON.stringify({ success: true }), { status: 200 });
+
+    res.status(200).json({ success: true });
   } catch (err) {
     console.error("Twilio Error:", err);
-    return new Response(JSON.stringify({ error: "Failed to send SMS" }), { status: 500 });
+    res.status(500).json({ error: "Failed to send SMS" });
   }
 }
