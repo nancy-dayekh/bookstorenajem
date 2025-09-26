@@ -25,7 +25,9 @@ type Order = {
 
 type CheckoutItem = {
   quantity: number;
-  add_products?: { name: string }[]; // ✅ Array
+  add_products?: {
+    name: string;
+  };
 };
 
 type TopProduct = {
@@ -71,10 +73,11 @@ export default function AdminDashboard() {
         setYears(uniqueYears);
         calculateMonthlyRevenue(typedCheckouts, selectedYear);
 
-        // Fetch checkout items
+        // Fetch top products
         const { data: items, error: itemsError } = await supabase
           .from("checkout_items")
-          .select("quantity, add_products(name)");
+          .select("quantity, add_products(name)")
+          .order("quantity", { ascending: false });
 
         if (itemsError) throw itemsError;
 
@@ -82,10 +85,8 @@ export default function AdminDashboard() {
 
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
-          item.add_products?.forEach((p) => {
-            const productName = p.name || "Unknown Product";
-            productSales[productName] = (productSales[productName] || 0) + item.quantity;
-          });
+          const productName = item.add_products?.name || "Unknown Product";
+          productSales[productName] = (productSales[productName] || 0) + item.quantity;
         });
 
         const topProductsArray: TopProduct[] = Object.entries(productSales)
@@ -127,7 +128,7 @@ export default function AdminDashboard() {
     setMonthlyData(monthly);
   };
 
-  const COLORS = ["#ec4899", "#f472b6", "#f9a8d4", "#db2777", "#3b82f6"]; // last one blue for top
+  const COLORS = ["#ec4899", "#f472b6", "#f9a8d4", "#db2777", "#be185d"];
 
   return (
     <div className="p-4 sm:p-10 bg-gray-50 min-h-screen space-y-10">
@@ -203,10 +204,7 @@ export default function AdminDashboard() {
               label
             >
               {topProducts.map((entry, index) => (
-                <Cell
-                  key={index}
-                  fill={index === 0 ? "#3b82f6" : COLORS[index % COLORS.length]} // highlight top product
-                />
+                <Cell key={index} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
             <Legend />
