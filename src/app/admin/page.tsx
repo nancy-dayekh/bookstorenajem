@@ -41,16 +41,13 @@ type MonthlyData = {
 };
 
 export default function AdminDashboard() {
-  // Orders array is now typed correctly
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersCount, setOrdersCount] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [years, setYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(
-    new Date().getFullYear()
-  );
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
 
   useEffect(() => {
@@ -58,30 +55,24 @@ export default function AdminDashboard() {
       try {
         const { data: checkouts, error: checkoutsError } = await supabase
           .from("checkouts")
-          .select<Order>("id,total,created_at");
+          .select("id,total,created_at");
 
         if (checkoutsError) throw checkoutsError;
 
-        // orders متغير مستخدم لاحقاً للتقارير
-        setOrders(checkouts || []);
-        setOrdersCount(checkouts?.length || 0);
+        const typedCheckouts = (checkouts || []) as Order[];
+        setOrders(typedCheckouts);
+        setOrdersCount(typedCheckouts.length);
 
-        const total = (checkouts || []).reduce(
-          (sum, c) => sum + Number(c.total),
-          0
-        );
+        const total = typedCheckouts.reduce((sum, c) => sum + Number(c.total), 0);
         setTotalRevenue(total);
 
-        // السنوات الفريدة
         const uniqueYears = [
-          ...new Set(
-            (checkouts || []).map((c) => new Date(c.created_at).getFullYear())
-          ),
+          ...new Set(typedCheckouts.map((c) => new Date(c.created_at).getFullYear())),
         ];
         setYears(uniqueYears);
-        calculateMonthlyRevenue(checkouts || [], selectedYear);
+        calculateMonthlyRevenue(typedCheckouts, selectedYear);
 
-        // أكثر المنتجات مبيعًا
+        // Fetch top products
         const { data: items, error: itemsError } = await supabase
           .from<CheckoutItem>("checkout_items")
           .select("quantity, add_products(name)")
@@ -92,8 +83,7 @@ export default function AdminDashboard() {
         const productSales: Record<string, number> = {};
         (items || []).forEach((item) => {
           const productName = item.add_products?.name || "Unknown Product";
-          productSales[productName] =
-            (productSales[productName] || 0) + item.quantity;
+          productSales[productName] = (productSales[productName] || 0) + item.quantity;
         });
 
         const topProductsArray: TopProduct[] = Object.entries(productSales)
@@ -103,17 +93,16 @@ export default function AdminDashboard() {
 
         setTopProducts(topProductsArray);
 
-        // عدد المنتجات الفعلي
+        // Total products
         const { data: allProducts, error: productsError } = await supabase
           .from("add_products")
           .select("id");
 
         if (productsError) throw productsError;
-
         setTotalProducts(allProducts?.length || 0);
+
       } catch (err: unknown) {
-        if (err instanceof Error)
-          console.error("Error fetching dashboard data:", err.message);
+        if (err instanceof Error) console.error("Error fetching dashboard data:", err.message);
       }
     }
 
@@ -148,29 +137,21 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Orders</h2>
-          <p className="text-4xl sm:text-5xl font-bold text-pink-500">
-            {ordersCount}
-          </p>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-500">{ordersCount}</p>
         </div>
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Revenue</h2>
-          <p className="text-4xl sm:text-5xl font-bold text-pink-600">
-            ${totalRevenue.toFixed(2)}
-          </p>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-600">${totalRevenue.toFixed(2)}</p>
         </div>
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Average Order</h2>
           <p className="text-4xl sm:text-5xl font-bold text-pink-400">
-            {ordersCount > 0
-              ? `$${(totalRevenue / ordersCount).toFixed(2)}`
-              : "-"}
+            {ordersCount > 0 ? `$${(totalRevenue / ordersCount).toFixed(2)}` : "-"}
           </p>
         </div>
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Products</h2>
-          <p className="text-4xl sm:text-5xl font-bold text-pink-700">
-            {totalProducts}
-          </p>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-700">{totalProducts}</p>
         </div>
       </div>
 
