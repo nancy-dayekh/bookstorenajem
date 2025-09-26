@@ -48,15 +48,17 @@ export default function AdminDashboard() {
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [years, setYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         const { data: checkouts, error: checkoutsError } = await supabase
-          .from<Order>("checkouts")
-          .select("id,total,created_at");
+          .from("checkouts")
+          .select<Order>("id,total,created_at");
 
         if (checkoutsError) throw checkoutsError;
 
@@ -64,7 +66,10 @@ export default function AdminDashboard() {
         setOrders(checkouts || []);
         setOrdersCount(checkouts?.length || 0);
 
-        const total = (checkouts || []).reduce((sum, c) => sum + Number(c.total), 0);
+        const total = (checkouts || []).reduce(
+          (sum, c) => sum + Number(c.total),
+          0
+        );
         setTotalRevenue(total);
 
         // السنوات الفريدة
@@ -87,7 +92,8 @@ export default function AdminDashboard() {
         const productSales: Record<string, number> = {};
         (items || []).forEach((item) => {
           const productName = item.add_products?.name || "Unknown Product";
-          productSales[productName] = (productSales[productName] || 0) + item.quantity;
+          productSales[productName] =
+            (productSales[productName] || 0) + item.quantity;
         });
 
         const topProductsArray: TopProduct[] = Object.entries(productSales)
@@ -106,7 +112,8 @@ export default function AdminDashboard() {
 
         setTotalProducts(allProducts?.length || 0);
       } catch (err: unknown) {
-        if (err instanceof Error) console.error("Error fetching dashboard data:", err.message);
+        if (err instanceof Error)
+          console.error("Error fetching dashboard data:", err.message);
       }
     }
 
@@ -141,7 +148,9 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Orders</h2>
-          <p className="text-4xl sm:text-5xl font-bold text-pink-500">{ordersCount}</p>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-500">
+            {ordersCount}
+          </p>
         </div>
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Revenue</h2>
@@ -152,12 +161,16 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Average Order</h2>
           <p className="text-4xl sm:text-5xl font-bold text-pink-400">
-            {ordersCount > 0 ? `$${(totalRevenue / ordersCount).toFixed(2)}` : "-"}
+            {ordersCount > 0
+              ? `$${(totalRevenue / ordersCount).toFixed(2)}`
+              : "-"}
           </p>
         </div>
         <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
           <h2 className="text-lg font-medium text-gray-500">Total Products</h2>
-          <p className="text-4xl sm:text-5xl font-bold text-pink-700">{totalProducts}</p>
+          <p className="text-4xl sm:text-5xl font-bold text-pink-700">
+            {totalProducts}
+          </p>
         </div>
       </div>
 
