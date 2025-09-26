@@ -42,7 +42,9 @@ export default function AdminDashboard() {
 
         // السنوات الفريدة
         const uniqueYears = [
-          ...new Set(checkouts.map((c) => new Date(c.created_at).getFullYear())),
+          ...new Set(
+            checkouts.map((c) => new Date(c.created_at).getFullYear())
+          ),
         ];
         setYears(uniqueYears);
         calculateMonthlyRevenue(checkouts, selectedYear);
@@ -119,13 +121,6 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-medium text-gray-500">Total Revenue</h2>
           <p className="text-5xl font-bold text-pink-600">
             ${totalRevenue.toFixed(2)}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition">
-          <h2 className="text-lg font-medium text-gray-500">Average Order</h2>
-          <p className="text-5xl font-bold text-pink-400">
-            {ordersCount > 0 ? `$${(totalRevenue / ordersCount).toFixed(2)}` : "-"}
           </p>
         </div>
 
