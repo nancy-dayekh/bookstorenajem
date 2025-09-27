@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export default function CheckoutsPage() {
   const [checkouts, setCheckouts] = useState<any[]>([]);
@@ -31,7 +33,8 @@ export default function CheckoutsPage() {
   async function fetchCheckouts() {
     const { data, error } = await supabase
       .from("checkout_items")
-      .select(`
+      .select(
+        `
         id,
         quantity,
         size,
@@ -45,15 +48,18 @@ export default function CheckoutsPage() {
           region,
           subtotal,
           total,
-          delivery_id
+          delivery_id,
+          status
         ),
         product:add_products (
           id,
           name,
           years,
-          image
+          image,
+          price
         )
-      `)
+      `
+      )
       .order("checkout_id", { ascending: false })
       .order("id", { ascending: true });
 
@@ -86,17 +92,20 @@ export default function CheckoutsPage() {
       if (!editId) {
         const { data: newCheckout, error } = await supabase
           .from("checkouts")
-          .insert([{
-            first_name: form.first_name,
-            last_name: form.last_name,
-            address: form.address,
-            phone: form.phone,
-            city: form.city,
-            region: form.region,
-            subtotal: form.subtotal,
-            total: form.total,
-            delivery_id: form.delivery_id ? Number(form.delivery_id) : null
-          }])
+          .insert([
+            {
+              first_name: form.first_name,
+              last_name: form.last_name,
+              address: form.address,
+              phone: form.phone,
+              city: form.city,
+              region: form.region,
+              subtotal: form.subtotal,
+              total: form.total,
+              delivery_id: form.delivery_id ? Number(form.delivery_id) : null,
+              status: "Pending",
+            },
+          ])
           .select("*")
           .single();
         if (error) throw error;
@@ -113,21 +122,21 @@ export default function CheckoutsPage() {
             region: form.region,
             subtotal: form.subtotal,
             total: form.total,
-            delivery_id: form.delivery_id ? Number(form.delivery_id) : null
+            delivery_id: form.delivery_id ? Number(form.delivery_id) : null,
           })
           .eq("id", editId);
         if (error) throw error;
       }
 
       if (!editId) {
-        const { error } = await supabase
-          .from("checkout_items")
-          .insert([{
+        const { error } = await supabase.from("checkout_items").insert([
+          {
             checkout_id: checkoutId,
             product_id: Number(form.product_id),
             size: form.size,
-            quantity: Number(form.quantity)
-          }]);
+            quantity: Number(form.quantity),
+          },
+        ]);
         if (error) throw error;
         toast.success("Checkout Added!");
       } else {
@@ -138,7 +147,7 @@ export default function CheckoutsPage() {
             .update({
               product_id: Number(form.product_id),
               size: form.size,
-              quantity: Number(form.quantity)
+              quantity: Number(form.quantity),
             })
             .eq("id", item.id);
           if (error) throw error;
@@ -156,13 +165,90 @@ export default function CheckoutsPage() {
 
   async function deleteCheckout(checkoutId: number) {
     try {
-      const { error } = await supabase.from("checkouts").delete().eq("id", checkoutId);
+      const { error } = await supabase
+        .from("checkouts")
+        .delete()
+        .eq("id", checkoutId);
       if (error) throw error;
       toast.success("Checkout Deleted!");
       fetchCheckouts();
     } catch (err: any) {
       toast.error(err.message);
     }
+  }
+
+  async function updateStatus(checkoutId: number, newStatus: string) {
+    const { error } = await supabase
+      .from("checkouts")
+      .update({ status: newStatus })
+      .eq("id", checkoutId);
+    if (error) toast.error(error.message);
+    else {
+      toast.success(`Status updated to ${newStatus}`);
+      fetchCheckouts();
+    }
+  }
+
+  function generateInvoice(checkout: any) {
+    const doc = new jsPDF();
+
+    // 🔵 Header
+    doc.setFontSize(22);
+    doc.setTextColor(33, 150, 243);
+    doc.text("INVOICE", 105, 20, { align: "center" });
+
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Invoice ID: #${checkout.id}`, 20, 35);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 42);
+
+    // 🟢 Customer Info
+    doc.setFontSize(14);
+    doc.text("Customer Details:", 20, 55);
+    doc.setFontSize(12);
+    doc.text(`Name: ${checkout.first_name} ${checkout.last_name}`, 20, 63);
+    doc.text(`Phone: ${checkout.phone}`, 20, 70);
+    doc.text(`Address: ${checkout.address}`, 20, 77);
+    doc.text(`Status: ${checkout.status}`, 20, 84);
+    const tableData = checkout.items.map((item: any, index: number) => {
+      const price = Number(item.product?.price) || 0; // ✅ ensure number
+      const total = price * (Number(item.quantity) || 0);
+      return [
+        index + 1,
+        item.product?.name || "N/A",
+        item.size || "-",
+        item.quantity || 0,
+        `$${price.toFixed(2)}`, // now safe
+        `$${total.toFixed(2)}`, // now safe
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 95,
+      head: [["#", "Product", "Size", "Qty", "Price", "Total"]],
+      body: tableData,
+      styles: { halign: "center" },
+      headStyles: { fillColor: [33, 150, 243], textColor: 255, fontSize: 12 },
+      alternateRowStyles: { fillColor: [240, 240, 240] },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 60 },
+        2: { cellWidth: 20 },
+        3: { cellWidth: 20 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 25 },
+      },
+    });
+
+    // 🔴 Total Section
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.text(`Grand Total: $${checkout.total}`, 160, finalY, {
+      align: "right",
+    });
+
+    // 🖨️ Save PDF
+    doc.save(`invoice-${checkout.id}.pdf`);
   }
 
   function resetForm() {
@@ -189,7 +275,7 @@ export default function CheckoutsPage() {
 
   // Group checkouts by customer
   const groupedCheckouts = checkouts.reduce((acc: any[], item) => {
-    const existing = acc.find(c => c.id === item.checkout.id);
+    const existing = acc.find((c) => c.id === item.checkout.id);
     if (existing) {
       existing.items.push(item);
     } else {
@@ -211,7 +297,16 @@ export default function CheckoutsPage() {
           Add / Edit Checkout
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {["first_name", "last_name", "address", "phone", "city", "region", "subtotal", "total"].map((field) => (
+          {[
+            "first_name",
+            "last_name",
+            "address",
+            "phone",
+            "city",
+            "region",
+            "subtotal",
+            "total",
+          ].map((field) => (
             <input
               key={field}
               type="text"
@@ -248,7 +343,9 @@ export default function CheckoutsPage() {
             placeholder="Quantity"
             value={form.quantity}
             min={1}
-            onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+            onChange={(e) =>
+              setForm({ ...form, quantity: Number(e.target.value) })
+            }
             className="border border-pink-200 bg-pink-50 text-gray-800 px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none"
           />
 
@@ -291,9 +388,12 @@ export default function CheckoutsPage() {
                 "Image",
                 "Subtotal",
                 "Total",
+                "Status",
                 "Delivery / Actions",
               ].map((title) => (
-                <th key={title} className="px-4 py-3 text-left">{title}</th>
+                <th key={title} className="px-4 py-3 text-left">
+                  {title}
+                </th>
               ))}
             </tr>
           </thead>
@@ -304,18 +404,43 @@ export default function CheckoutsPage() {
                   <tr
                     key={item.id}
                     className={`transition-colors duration-150 ${
-                      index % 2 === 0 ? "bg-white hover:bg-pink-50" : "bg-pink-50 hover:bg-pink-100"
+                      index % 2 === 0
+                        ? "bg-white hover:bg-pink-50"
+                        : "bg-pink-50 hover:bg-pink-100"
                     }`}
                   >
                     {index === 0 && (
                       <>
-                        <td className="px-4 py-3 font-medium" rowSpan={checkout.items.length}>
+                        <td
+                          className="px-4 py-3 font-medium"
+                          rowSpan={checkout.items.length}
+                        >
                           {checkout.first_name} {checkout.last_name}
                         </td>
-                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.address}</td>
-                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.phone}</td>
-                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.city}</td>
-                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.region}</td>
+                        <td
+                          className="px-4 py-3"
+                          rowSpan={checkout.items.length}
+                        >
+                          {checkout.address}
+                        </td>
+                        <td
+                          className="px-4 py-3"
+                          rowSpan={checkout.items.length}
+                        >
+                          {checkout.phone}
+                        </td>
+                        <td
+                          className="px-4 py-3"
+                          rowSpan={checkout.items.length}
+                        >
+                          {checkout.city}
+                        </td>
+                        <td
+                          className="px-4 py-3"
+                          rowSpan={checkout.items.length}
+                        >
+                          {checkout.region}
+                        </td>
                       </>
                     )}
                     <td className="px-4 py-3">{item.product?.name || "-"}</td>
@@ -323,18 +448,61 @@ export default function CheckoutsPage() {
                     <td className="px-4 py-3">{item.quantity}</td>
                     <td className="px-4 py-3">
                       {item.product?.image ? (
-                        <Image src={item.product.image} alt={item.product.name} width={48} height={48} className="rounded-lg shadow-sm object-cover" />
-                      ) : "-"}
+                        <Image
+                          src={item.product.image}
+                          alt={item.product.name}
+                          width={48}
+                          height={48}
+                          className="rounded-lg shadow-sm object-cover"
+                        />
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     {index === 0 && (
                       <>
-                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.subtotal}</td>
-                        <td className="px-4 py-3" rowSpan={checkout.items.length}>{checkout.total}</td>
-                        <td className="px-4 py-3 text-center" rowSpan={checkout.items.length}>
+                        <td
+                          className="px-4 py-3"
+                          rowSpan={checkout.items.length}
+                        >
+                          {checkout.subtotal}
+                        </td>
+                        <td
+                          className="px-4 py-3"
+                          rowSpan={checkout.items.length}
+                        >
+                          {checkout.total}
+                        </td>
+                        <td
+                          className="px-4 py-3"
+                          rowSpan={checkout.items.length}
+                        >
+                          <select
+                            value={checkout.status || "Pending"}
+                            onChange={(e) =>
+                              updateStatus(checkout.id, e.target.value)
+                            }
+                            className="border border-gray-300 rounded-md text-sm px-2 py-1"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Canceled">Canceled</option>
+                          </select>
+                        </td>
+                        <td
+                          className="px-4 py-3 text-center"
+                          rowSpan={checkout.items.length}
+                        >
                           <div className="flex flex-col items-center gap-2">
                             <span className="text-sm text-gray-600">
-                              {deliveries.find(d => d.id === checkout.delivery_id)
-                                ? `$${deliveries.find(d => d.id === checkout.delivery_id).salary}`
+                              {deliveries.find(
+                                (d) => d.id === checkout.delivery_id
+                              )
+                                ? `$${
+                                    deliveries.find(
+                                      (d) => d.id === checkout.delivery_id
+                                    ).salary
+                                  }`
                                 : "-"}
                             </span>
                             <div className="flex gap-2">
@@ -351,10 +519,14 @@ export default function CheckoutsPage() {
                                     region: checkout.region,
                                     subtotal: checkout.subtotal,
                                     total: checkout.total,
-                                    product_id: firstItem.product?.id ? String(firstItem.product.id) : "",
+                                    product_id: firstItem.product?.id
+                                      ? String(firstItem.product.id)
+                                      : "",
                                     size: firstItem.size,
                                     quantity: firstItem.quantity,
-                                    delivery_id: checkout.delivery_id ? String(checkout.delivery_id) : "",
+                                    delivery_id: checkout.delivery_id
+                                      ? String(checkout.delivery_id)
+                                      : "",
                                   });
                                 }}
                                 className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
@@ -366,6 +538,12 @@ export default function CheckoutsPage() {
                                 className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition"
                               >
                                 Delete
+                              </button>
+                              <button
+                                onClick={() => generateInvoice(checkout)}
+                                className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
+                              >
+                                PDF
                               </button>
                             </div>
                           </div>

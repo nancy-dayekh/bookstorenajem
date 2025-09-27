@@ -1,21 +1,69 @@
-'use client';
+"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, X, LayoutDashboard, Box, Package, Truck, CreditCard } from "lucide-react";
+import { Menu, X, LayoutDashboard, Box, Package, Truck, CreditCard, Bell } from "lucide-react";
+import { supabase } from "../../../lib/supabaseClient";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
 
+  const today = new Date().toISOString().split("T")[0];
+
   useEffect(() => {
-    // ✅ تحقق إذا في auth
+    // تحقق من وجود auth
     const auth = localStorage.getItem('admin-auth');
-    if (!auth) {
-      router.push('/login'); // ارجعه على صفحة login
-    }
+    if (!auth) router.push('/login');
+
+    // جلب عدد الطلبات الجديدة اليوم
+    const fetchNewOrdersCount = async () => {
+      const { count, error } = await supabase
+        .from("checkouts")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "Pending")
+        .gte("created_at", today + "T00:00:00")
+        .lte("created_at", today + "T23:59:59");
+
+      if (!error) setNewOrdersCount(count || 0);
+    };
+
+    fetchNewOrdersCount();
+
+    // Realtime subscription للطلبات الجديدة
+    const subscription = supabase
+      .channel("orders_today")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "checkouts" },
+        (payload) => {
+          const orderDate = payload.new.created_at.split("T")[0];
+          if (orderDate === today) {
+            setNewOrdersCount(prev => prev + 1);
+
+            // Web Notification
+            if (Notification.permission === "granted") {
+              new Notification("طلب جديد", {
+                body: `${payload.new.first_name} ${payload.new.last_name} | إجمالي: $${payload.new.total}`,
+              });
+            } else if (Notification.permission !== "denied") {
+              Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                  new Notification("طلب جديد", {
+                    body: `${payload.new.first_name} ${payload.new.last_name} | إجمالي: $${payload.new.total}`,
+                  });
+                }
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(subscription);
   }, [router]);
 
   const links = [
@@ -24,6 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/products", label: "Products", Icon: Package },
     { href: "/admin/deliveries", label: "Deliveries", Icon: Truck },
     { href: "/admin/checkouts", label: "Checkouts", Icon: CreditCard },
+    { href: "/admin/notifications", label: "Notifications", Icon: Bell, hasCount: true },
     { href: "/admin/multiImages", label: "MultiImages", Icon: Package },
   ];
 
@@ -51,18 +100,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="flex flex-col p-4 space-y-2">
-          {links.map(({ href, label, Icon }) => {
+          {links.map(({ href, label, Icon, hasCount }) => {
             const isActive = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 p-2 rounded font-medium transition
+                className={`flex items-center justify-between gap-3 p-2 rounded font-medium transition
                   ${isActive ? "bg-pink-100 text-pink-600 font-semibold" : "hover:bg-pink-50"}`}
               >
-                <Icon className={`h-5 w-5 ${isActive ? "text-pink-600" : "text-gray-600"}`} />
-                {label}
+                <div className="flex items-center gap-3">
+                  <Icon className={`h-5 w-5 ${isActive ? "text-pink-600" : "text-gray-600"}`} />
+                  {label}
+                </div>
+
+                {hasCount && newOrdersCount > 0 && (
+                  <span className="ml-2 bg-pink-600 text-white rounded-full px-2 text-xs animate-pulse">
+                    {newOrdersCount}
+                  </span>
+                )}
               </Link>
             );
           })}
