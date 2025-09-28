@@ -275,6 +275,7 @@ export default function CheckoutsPage() {
 
   // Group checkouts by customer
   const groupedCheckouts = checkouts.reduce((acc: any[], item) => {
+    
     const existing = acc.find((c) => c.id === item.checkout.id);
     if (existing) {
       existing.items.push(item);
