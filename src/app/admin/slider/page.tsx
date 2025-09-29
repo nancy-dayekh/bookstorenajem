@@ -3,16 +3,23 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
+
+interface Slide {
+  id: number;
+  media_url: string;
+  media_type: "image" | "video";
+}
 
 export default function HomeSliderManager() {
-  const [slides, setSlides] = useState<any[]>([]);
+  const [slides, setSlides] = useState<Slide[]>([]);
   const [file, setFile] = useState<File | null>(null);
-  const [editSlide, setEditSlide] = useState<any | null>(null); // current slide being edited
+  const [editSlide, setEditSlide] = useState<Slide | null>(null);
 
   // Fetch slides
   async function fetchSlides() {
     const { data, error } = await supabase
-      .from("home_slider")
+      .from<Slide>("home_slider")
       .select("*")
       .order("id", { ascending: true });
 
@@ -39,7 +46,7 @@ export default function HomeSliderManager() {
     };
   }
 
-  // Add or update slide depending on editSlide
+  // Add or update slide
   async function handleSubmit() {
     if (!file) return toast.error("Please select an image or video.");
 
@@ -52,6 +59,7 @@ export default function HomeSliderManager() {
           .from("home_slider")
           .update({ media_url: url, media_type: type })
           .eq("id", editSlide.id);
+
         if (error) throw error;
 
         toast.success("Slide Updated!");
@@ -93,7 +101,7 @@ export default function HomeSliderManager() {
   }
 
   // Start editing a slide
-  function handleEditSlide(slide: any) {
+  function handleEditSlide(slide: Slide) {
     setEditSlide(slide);
     setFile(null); // reset input for new file
   }
@@ -162,10 +170,12 @@ export default function HomeSliderManager() {
                         className="w-40 h-28 object-cover rounded"
                       />
                     ) : (
-                      <img
+                      <Image
                         src={slide.media_url}
                         alt={`Slide ${slide.id}`}
-                        className="w-40 h-28 object-cover rounded"
+                        width={160}
+                        height={112}
+                        className="object-cover rounded"
                       />
                     )}
                   </td>
@@ -213,10 +223,12 @@ export default function HomeSliderManager() {
                   className="w-full h-48 object-cover rounded"
                 />
               ) : (
-                <img
+                <Image
                   src={slide.media_url}
                   alt={`Slide ${slide.id}`}
-                  className="w-full h-48 object-cover rounded"
+                  width={400}
+                  height={300}
+                  className="object-cover rounded"
                 />
               )}
               <div className="flex gap-2">
