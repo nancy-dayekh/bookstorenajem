@@ -12,6 +12,8 @@ import {
   Truck,
   CreditCard,
   Bell,
+  Palette,
+   Image,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -88,7 +90,9 @@ export default function AdminLayout({
     { href: "/admin/products", label: "Products", Icon: Package },
     { href: "/admin/deliveries", label: "Deliveries", Icon: Truck },
     { href: "/admin/checkouts", label: "Checkouts", Icon: CreditCard },
-    { href: "/admin/logo", label: "Logos", Icon: Package }, // <-- new logo link
+    { href: "/admin/logo", label: "Logos", Icon: Package },
+    { href: "/admin/colors", label: "Colors", Icon: Palette },
+    { href: "/admin/slider", label: "Slider", Icon: Image }, // <-- new item
 
     {
       href: "/admin/notifications",
