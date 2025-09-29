@@ -3,11 +3,18 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
+
+type Slide = {
+  id: number;
+  media_url: string;
+  media_type: "image" | "video";
+};
 
 export default function HomeSliderManager() {
-  const [slides, setSlides] = useState<any[]>([]);
+  const [slides, setSlides] = useState<Slide[]>([]);
   const [file, setFile] = useState<File | null>(null);
-  const [editSlide, setEditSlide] = useState<any | null>(null); // current slide being edited
+  const [editSlide, setEditSlide] = useState<Slide | null>(null); // current slide being edited
 
   // Fetch slides
   async function fetchSlides() {
@@ -21,7 +28,7 @@ export default function HomeSliderManager() {
   }
 
   // Upload file to Supabase storage
-  async function uploadFile(file: File) {
+  async function uploadFile(file: File): Promise<{ url: string; type: "image" | "video" }> {
     const fileName = `${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from("home-slider")
@@ -93,7 +100,7 @@ export default function HomeSliderManager() {
   }
 
   // Start editing a slide
-  function handleEditSlide(slide: any) {
+  function handleEditSlide(slide: Slide) {
     setEditSlide(slide);
     setFile(null); // reset input for new file
   }
@@ -162,10 +169,12 @@ export default function HomeSliderManager() {
                         className="w-40 h-28 object-cover rounded"
                       />
                     ) : (
-                      <img
+                      <Image
                         src={slide.media_url}
                         alt={`Slide ${slide.id}`}
-                        className="w-40 h-28 object-cover rounded"
+                        width={160}
+                        height={112}
+                        className="object-cover rounded"
                       />
                     )}
                   </td>
@@ -213,10 +222,12 @@ export default function HomeSliderManager() {
                   className="w-full h-48 object-cover rounded"
                 />
               ) : (
-                <img
+                <Image
                   src={slide.media_url}
                   alt={`Slide ${slide.id}`}
-                  className="w-full h-48 object-cover rounded"
+                  width={400}
+                  height={192}
+                  className="object-cover rounded"
                 />
               )}
               <div className="flex gap-2">
