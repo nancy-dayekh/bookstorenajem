@@ -3,13 +3,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import Image from "next/image";
 
-interface Slide {
+type Slide = {
   id: number;
   media_url: string;
   media_type: "image" | "video";
-}
+};
 
 export default function HomeSliderManager() {
   const [slides, setSlides] = useState<Slide[]>([]);
@@ -19,15 +18,15 @@ export default function HomeSliderManager() {
   // Fetch slides
   async function fetchSlides() {
     const { data, error } = await supabase
-      .from<Slide>("home_slider")
+      .from("home_slider")
       .select("*")
       .order("id", { ascending: true });
 
     if (error) toast.error(error.message);
-    else setSlides(data || []);
+    else setSlides((data as Slide[]) || []);
   }
 
-  // Upload file to Supabase storage
+  // Upload file
   async function uploadFile(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -46,7 +45,6 @@ export default function HomeSliderManager() {
     };
   }
 
-  // Add or update slide
   async function handleSubmit() {
     if (!file) return toast.error("Please select an image or video.");
 
@@ -54,18 +52,15 @@ export default function HomeSliderManager() {
       const { url, type } = await uploadFile(file);
 
       if (editSlide) {
-        // Update existing slide
         const { error } = await supabase
           .from("home_slider")
           .update({ media_url: url, media_type: type })
           .eq("id", editSlide.id);
-
         if (error) throw error;
 
         toast.success("Slide Updated!");
         setEditSlide(null);
       } else {
-        // Add new slide
         const { error } = await supabase
           .from("home_slider")
           .insert([{ media_url: url, media_type: type }]);
@@ -76,12 +71,11 @@ export default function HomeSliderManager() {
 
       setFile(null);
       fetchSlides();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   }
 
-  // Delete slide
   async function deleteSlide(id: number) {
     try {
       const slide = slides.find((s) => s.id === id);
@@ -95,15 +89,14 @@ export default function HomeSliderManager() {
 
       toast.success("Slide Deleted!");
       fetchSlides();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   }
 
-  // Start editing a slide
   function handleEditSlide(slide: Slide) {
     setEditSlide(slide);
-    setFile(null); // reset input for new file
+    setFile(null);
   }
 
   useEffect(() => {
@@ -117,7 +110,7 @@ export default function HomeSliderManager() {
         Home Slider Management
       </h1>
 
-      {/* Add/Edit Slide Form */}
+      {/* Add/Edit Form */}
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
           {editSlide ? "Edit Slide" : "Add New Slide"}
@@ -148,7 +141,6 @@ export default function HomeSliderManager() {
 
       {/* Slides List */}
       <div className="bg-white shadow-md rounded-xl overflow-hidden">
-        {/* Desktop Table */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="min-w-full text-sm sm:text-base">
             <thead className="bg-pink-100">
@@ -164,19 +156,9 @@ export default function HomeSliderManager() {
                   <td className="p-3">{slide.id}</td>
                   <td className="p-3">
                     {slide.media_type === "video" ? (
-                      <video
-                        src={slide.media_url}
-                        controls
-                        className="w-40 h-28 object-cover rounded"
-                      />
+                      <video src={slide.media_url} controls className="w-40 h-28 object-cover rounded" />
                     ) : (
-                      <Image
-                        src={slide.media_url}
-                        alt={`Slide ${slide.id}`}
-                        width={160}
-                        height={112}
-                        className="object-cover rounded"
-                      />
+                      <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-40 h-28 object-cover rounded" />
                     )}
                   </td>
                   <td className="p-3 flex gap-2">
@@ -208,28 +190,13 @@ export default function HomeSliderManager() {
 
         {/* Mobile Cards */}
         <div className="sm:hidden flex flex-col gap-4 p-4">
-          {slides.length === 0 && (
-            <p className="text-center text-gray-500">No slides yet.</p>
-          )}
+          {slides.length === 0 && <p className="text-center text-gray-500">No slides yet.</p>}
           {slides.map((slide) => (
-            <div
-              key={slide.id}
-              className="border rounded-lg shadow-sm p-3 flex flex-col gap-3"
-            >
+            <div key={slide.id} className="border rounded-lg shadow-sm p-3 flex flex-col gap-3">
               {slide.media_type === "video" ? (
-                <video
-                  src={slide.media_url}
-                  controls
-                  className="w-full h-48 object-cover rounded"
-                />
+                <video src={slide.media_url} controls className="w-full h-48 object-cover rounded" />
               ) : (
-                <Image
-                  src={slide.media_url}
-                  alt={`Slide ${slide.id}`}
-                  width={400}
-                  height={300}
-                  className="object-cover rounded"
-                />
+                <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-full h-48 object-cover rounded" />
               )}
               <div className="flex gap-2">
                 <button
