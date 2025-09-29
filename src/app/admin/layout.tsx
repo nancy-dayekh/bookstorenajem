@@ -13,7 +13,7 @@ import {
   CreditCard,
   Bell,
   Palette,
-   Image,
+  Image,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 
@@ -92,8 +92,12 @@ export default function AdminLayout({
     { href: "/admin/checkouts", label: "Checkouts", Icon: CreditCard },
     { href: "/admin/logo", label: "Logos", Icon: Package },
     { href: "/admin/colors", label: "Colors", Icon: Palette },
-    { href: "/admin/slider", label: "Slider", Icon: Image }, // <-- new item
-
+    { href: "/admin/slider", label: "Slider", Icon: Image },
+    {
+      href: "/admin/homepage_banner",
+      label: "Home Banner",
+      Icon: LayoutDashboard,
+    },
     {
       href: "/admin/notifications",
       label: "Notifications",
