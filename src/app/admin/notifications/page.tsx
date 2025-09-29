@@ -1,16 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
 
 export default function TodayOrdersLive() {
   const [todayOrders, setTodayOrders] = useState<any[]>([]);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+
   const today = new Date().toISOString().split("T")[0];
 
-  const fetchTodayOrders = async () => {
+  // ✅ Wrap in useCallback to avoid ESLint warning
+  const fetchTodayOrders = useCallback(async () => {
     const { data, error } = await supabase
       .from("checkouts")
       .select(
@@ -31,7 +34,7 @@ export default function TodayOrdersLive() {
 
     if (error) toast.error(error.message);
     else setTodayOrders(data || []);
-  };
+  }, [today]);
 
   const saveNotification = async (order: any) => {
     await supabase.from("notifications").insert([
@@ -80,7 +83,7 @@ export default function TodayOrdersLive() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [today]);
+  }, [today, fetchTodayOrders]);
 
   const toggleDetails = (orderId: number) => {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
@@ -89,8 +92,9 @@ export default function TodayOrdersLive() {
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 sm:py-6">
       <Toaster position="top-right" />
+      {/* ✅ Escaped apostrophe */}
       <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-center text-pink-600">
-        Today's Orders (Live)
+        Today&apos;s Orders (Live)
       </h1>
 
       <div className="overflow-x-auto shadow-md rounded-xl border border-gray-200">
@@ -117,6 +121,7 @@ export default function TodayOrdersLive() {
                     <span>{order.phone}</span>
                     <span>${order.total}</span>
                   </div>
+
                   {expandedOrderId === order.id && (
                     <div className="mt-4 bg-pink-50 p-3 rounded-md">
                       <h3 className="font-semibold mb-2">Product Details:</h3>
@@ -126,13 +131,14 @@ export default function TodayOrdersLive() {
                             key={item.id}
                             className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6"
                           >
-                            {item.product?.image && (
-                              <img
-                                src={item.product.image}
-                                alt={item.product.name}
-                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md"
-                              />
-                            )}
+                            {/* ✅ Use Next.js <Image /> instead of <img> */}
+                            <Image
+                              src={item.product?.image || "/placeholder.png"}
+                              alt={item.product?.name ?? "Product image"}
+                              width={80}
+                              height={80}
+                              className="rounded-md object-cover"
+                            />
                             <div>
                               <p className="font-medium">{item.product?.name ?? "Unnamed Product"}</p>
                               <p>Size: {item.size}</p>
