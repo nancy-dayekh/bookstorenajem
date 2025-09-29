@@ -41,7 +41,6 @@ type MonthlyData = {
 };
 
 export default function AdminDashboard() {
-  const [orders, setOrders] = useState<Order[]>([]);
   const [ordersCount, setOrdersCount] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [totalProducts, setTotalProducts] = useState<number>(0);
@@ -61,7 +60,6 @@ export default function AdminDashboard() {
         if (checkoutsError) throw checkoutsError;
 
         const typedCheckouts = (checkouts || []) as Order[];
-        setOrders(typedCheckouts);
         setOrdersCount(typedCheckouts.length);
 
         const total = typedCheckouts.reduce((sum, c) => sum + Number(c.total), 0);
@@ -103,7 +101,6 @@ export default function AdminDashboard() {
 
         if (productsError) throw productsError;
         setTotalProducts(allProducts?.length || 0);
-
       } catch (err: unknown) {
         if (err instanceof Error) console.error("Error fetching dashboard data:", err.message);
       }
