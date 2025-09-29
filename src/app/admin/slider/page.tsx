@@ -14,9 +14,8 @@ type Slide = {
 export default function HomeSliderManager() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [file, setFile] = useState<File | null>(null);
-  const [editSlide, setEditSlide] = useState<Slide | null>(null); // current slide being edited
+  const [editSlide, setEditSlide] = useState<Slide | null>(null);
 
-  // Fetch slides
   async function fetchSlides() {
     const { data, error } = await supabase
       .from("home_slider")
@@ -27,7 +26,6 @@ export default function HomeSliderManager() {
     else setSlides(data || []);
   }
 
-  // Upload file to Supabase storage
   async function uploadFile(file: File): Promise<{ url: string; type: "image" | "video" }> {
     const fileName = `${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -46,7 +44,6 @@ export default function HomeSliderManager() {
     };
   }
 
-  // Add or update slide depending on editSlide
   async function handleSubmit() {
     if (!file) return toast.error("Please select an image or video.");
 
@@ -54,7 +51,6 @@ export default function HomeSliderManager() {
       const { url, type } = await uploadFile(file);
 
       if (editSlide) {
-        // Update existing slide
         const { error } = await supabase
           .from("home_slider")
           .update({ media_url: url, media_type: type })
@@ -64,7 +60,6 @@ export default function HomeSliderManager() {
         toast.success("Slide Updated!");
         setEditSlide(null);
       } else {
-        // Add new slide
         const { error } = await supabase
           .from("home_slider")
           .insert([{ media_url: url, media_type: type }]);
@@ -80,14 +75,13 @@ export default function HomeSliderManager() {
     }
   }
 
-  // Delete slide
   async function deleteSlide(id: number) {
     try {
       const slide = slides.find((s) => s.id === id);
       if (!slide) return toast.error("Slide not found.");
 
       const fileName = slide.media_url.split("/").pop();
-      await supabase.storage.from("home-slider").remove([fileName!]);
+      if (fileName) await supabase.storage.from("home-slider").remove([fileName]);
 
       const { error } = await supabase.from("home_slider").delete().eq("id", id);
       if (error) throw error;
@@ -99,10 +93,9 @@ export default function HomeSliderManager() {
     }
   }
 
-  // Start editing a slide
   function handleEditSlide(slide: Slide) {
     setEditSlide(slide);
-    setFile(null); // reset input for new file
+    setFile(null);
   }
 
   useEffect(() => {
@@ -116,7 +109,6 @@ export default function HomeSliderManager() {
         Home Slider Management
       </h1>
 
-      {/* Add/Edit Slide Form */}
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
           {editSlide ? "Edit Slide" : "Add New Slide"}
@@ -145,9 +137,7 @@ export default function HomeSliderManager() {
         </div>
       </div>
 
-      {/* Slides List */}
       <div className="bg-white shadow-md rounded-xl overflow-hidden">
-        {/* Desktop Table */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="min-w-full text-sm sm:text-base">
             <thead className="bg-pink-100">
@@ -205,11 +195,7 @@ export default function HomeSliderManager() {
           </table>
         </div>
 
-        {/* Mobile Cards */}
         <div className="sm:hidden flex flex-col gap-4 p-4">
-          {slides.length === 0 && (
-            <p className="text-center text-gray-500">No slides yet.</p>
-          )}
           {slides.map((slide) => (
             <div
               key={slide.id}
