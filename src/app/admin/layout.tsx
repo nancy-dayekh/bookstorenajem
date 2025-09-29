@@ -88,6 +88,8 @@ export default function AdminLayout({
     { href: "/admin/products", label: "Products", Icon: Package },
     { href: "/admin/deliveries", label: "Deliveries", Icon: Truck },
     { href: "/admin/checkouts", label: "Checkouts", Icon: CreditCard },
+    { href: "/admin/logo", label: "Logos", Icon: Package }, // <-- new logo link
+
     {
       href: "/admin/notifications",
       label: "Notifications",
