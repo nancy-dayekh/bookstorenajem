@@ -15,7 +15,11 @@ import {
 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const pathname = usePathname();
@@ -84,7 +88,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/products", label: "Products", Icon: Package },
     { href: "/admin/deliveries", label: "Deliveries", Icon: Truck },
     { href: "/admin/checkouts", label: "Checkouts", Icon: CreditCard },
-    { href: "/admin/notifications", label: "Notifications", Icon: Bell, hasCount: true },
+    {
+      href: "/admin/notifications",
+      label: "Notifications",
+      Icon: Bell,
+      hasCount: true,
+    },
     { href: "/admin/multiImages", label: "MultiImages", Icon: Package },
   ];
 
@@ -120,10 +129,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={href}
                 onClick={() => setIsOpen(false)}
                 className={`flex items-center justify-between gap-3 p-2 rounded font-medium transition
-                  ${isActive ? "bg-pink-100 text-pink-600 font-semibold" : "hover:bg-pink-50"}`}
+                  ${
+                    isActive
+                      ? "bg-pink-100 text-pink-600 font-semibold"
+                      : "hover:bg-pink-50"
+                  }`}
               >
                 <div className="flex items-center gap-3">
-                  <Icon className={`h-5 w-5 ${isActive ? "text-pink-600" : "text-gray-600"}`} />
+                  <Icon
+                    className={`h-5 w-5 ${
+                      isActive ? "text-pink-600" : "text-gray-600"
+                    }`}
+                  />
                   {label}
                 </div>
 
