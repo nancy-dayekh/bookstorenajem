@@ -4,7 +4,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import React from "react";
 
 export default function TodayOrdersLive() {
   const [todayOrders, setTodayOrders] = useState<any[]>([]);
@@ -26,8 +25,8 @@ export default function TodayOrdersLive() {
       `
       )
       .eq("status", "Pending")
-      .gte("created_at", today + "T00:00:00")
-      .lte("created_at", today + "T23:59:59")
+      .gte("created_at", `${today}T00:00:00`)
+      .lte("created_at", `${today}T23:59:59`)
       .order("id", { ascending: false });
 
     if (error) toast.error(error.message);
@@ -52,7 +51,7 @@ export default function TodayOrdersLive() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "checkouts" },
         async (payload) => {
-          const newOrder = payload.new;
+          const newOrder: any = payload.new;
           const orderDate = newOrder.created_at.split("T")[0];
 
           if (orderDate === today) {
@@ -65,21 +64,23 @@ export default function TodayOrdersLive() {
 
             await saveNotification(newOrder);
 
-            if (Notification.permission === "granted") {
+            if (typeof window !== "undefined" && Notification.permission === "granted") {
               new Notification("New Order", {
                 body: `${newOrder.first_name} ${newOrder.last_name} | Total: $${newOrder.total}`,
               });
             }
 
             const audio = new Audio("/notification.mp3");
-            audio.play();
+            audio.play().catch(() => console.log("Autoplay blocked by browser"));
           }
         }
       )
       .subscribe();
 
-    return () => supabase.removeChannel(subscription);
-  }, []);
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [today]);
 
   const toggleDetails = (orderId: number) => {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
@@ -104,20 +105,20 @@ export default function TodayOrdersLive() {
           </thead>
           <tbody>
             {todayOrders.map((order) => (
-              <React.Fragment key={order.id}>
-                <tr
+              <tr key={order.id} className="bg-white hover:bg-pink-50 cursor-pointer">
+                <td
+                  colSpan={4}
                   onClick={() => toggleDetails(order.id)}
-                  className="bg-white hover:bg-pink-50 cursor-pointer transition-colors duration-150"
+                  className="px-2 sm:px-4 py-2"
                 >
-                  <td className="px-2 sm:px-4 py-2">{order.first_name} {order.last_name}</td>
-                  <td className="px-2 sm:px-4 py-2">{order.address}</td>
-                  <td className="px-2 sm:px-4 py-2">{order.phone}</td>
-                  <td className="px-2 sm:px-4 py-2">${order.total}</td>
-                </tr>
-
-                {expandedOrderId === order.id && (
-                  <tr className="bg-pink-50">
-                    <td colSpan={4} className="px-2 sm:px-4 py-4">
+                  <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
+                    <span>{order.first_name} {order.last_name}</span>
+                    <span>{order.address}</span>
+                    <span>{order.phone}</span>
+                    <span>${order.total}</span>
+                  </div>
+                  {expandedOrderId === order.id && (
+                    <div className="mt-4 bg-pink-50 p-3 rounded-md">
                       <h3 className="font-semibold mb-2">Product Details:</h3>
                       <div className="space-y-3">
                         {order.items?.map((item: any) => (
@@ -125,24 +126,26 @@ export default function TodayOrdersLive() {
                             key={item.id}
                             className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6"
                           >
-                            <img
-                              src={item.product?.image}
-                              alt={item.product?.name}
-                              className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md"
-                            />
+                            {item.product?.image && (
+                              <img
+                                src={item.product.image}
+                                alt={item.product.name}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md"
+                              />
+                            )}
                             <div>
-                              <p className="font-medium">{item.product?.name}</p>
+                              <p className="font-medium">{item.product?.name ?? "Unnamed Product"}</p>
                               <p>Size: {item.size}</p>
                               <p>Qty: {item.quantity}</p>
-                              <p>Price: ${item.product?.price}</p>
+                              <p>Price: ${item.product?.price ?? 0}</p>
                             </div>
                           </div>
                         ))}
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </React.Fragment>
+                    </div>
+                  )}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
