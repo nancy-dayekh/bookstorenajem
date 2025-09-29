@@ -3,7 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Menu, X, LayoutDashboard, Box, Package, Truck, CreditCard, Bell } from "lucide-react";
+import {
+  Menu,
+  X,
+  LayoutDashboard,
+  Box,
+  Package,
+  Truck,
+  CreditCard,
+  Bell,
+} from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -16,8 +25,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     // تحقق من وجود auth
-    const auth = localStorage.getItem('admin-auth');
-    if (!auth) router.push('/login');
+    const auth = localStorage.getItem("admin-auth");
+    if (!auth) router.push("/login");
 
     // جلب عدد الطلبات الجديدة اليوم
     const fetchNewOrdersCount = async () => {
@@ -42,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         (payload) => {
           const orderDate = payload.new.created_at.split("T")[0];
           if (orderDate === today) {
-            setNewOrdersCount(prev => prev + 1);
+            setNewOrdersCount((prev) => prev + 1);
 
             // Web Notification
             if (Notification.permission === "granted") {
@@ -50,7 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 body: `${payload.new.first_name} ${payload.new.last_name} | إجمالي: $${payload.new.total}`,
               });
             } else if (Notification.permission !== "denied") {
-              Notification.requestPermission().then(permission => {
+              Notification.requestPermission().then((permission) => {
                 if (permission === "granted") {
                   new Notification("طلب جديد", {
                     body: `${payload.new.first_name} ${payload.new.last_name} | إجمالي: $${payload.new.total}`,
@@ -63,8 +72,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )
       .subscribe();
 
-    return () => supabase.removeChannel(subscription);
-  }, [router]);
+    // ✅ FIX: do NOT return a Promise from cleanup
+    return () => {
+      supabase.removeChannel(subscription); // no await here!
+    };
+  }, [router, today]); // ✅ add today as dependency
 
   const links = [
     { href: "/admin", label: "Dashboard", Icon: LayoutDashboard },
@@ -127,9 +139,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-6 mt-14 md:mt-0">
-        {children}
-      </main>
+      <main className="flex-1 p-4 md:p-6 mt-14 md:mt-0">{children}</main>
 
       {/* Mobile Overlay */}
       {isOpen && (
