@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import Image from "next/image";
 
 type Slide = {
   id: number;
@@ -19,12 +18,12 @@ export default function HomeSliderManager() {
   // Fetch slides
   async function fetchSlides() {
     const { data, error } = await supabase
-      .from<Slide>("home_slider") // Only ONE type argument
+      .from("home_slider")
       .select("*")
       .order("id", { ascending: true });
 
     if (error) toast.error(error.message);
-    else setSlides(data || []);
+    else setSlides((data as Slide[]) || []);
   }
 
   // Upload file
@@ -33,6 +32,7 @@ export default function HomeSliderManager() {
     const { error: uploadError } = await supabase.storage
       .from("home-slider")
       .upload(fileName, file, { upsert: true });
+
     if (uploadError) throw uploadError;
 
     const { data: publicUrlData } = supabase.storage
@@ -45,7 +45,6 @@ export default function HomeSliderManager() {
     };
   }
 
-  // Add or update slide
   async function handleSubmit() {
     if (!file) return toast.error("Please select an image or video.");
 
@@ -58,6 +57,7 @@ export default function HomeSliderManager() {
           .update({ media_url: url, media_type: type })
           .eq("id", editSlide.id);
         if (error) throw error;
+
         toast.success("Slide Updated!");
         setEditSlide(null);
       } else {
@@ -65,6 +65,7 @@ export default function HomeSliderManager() {
           .from("home_slider")
           .insert([{ media_url: url, media_type: type }]);
         if (error) throw error;
+
         toast.success("Slide Added!");
       }
 
@@ -75,7 +76,6 @@ export default function HomeSliderManager() {
     }
   }
 
-  // Delete slide
   async function deleteSlide(id: number) {
     try {
       const slide = slides.find((s) => s.id === id);
@@ -94,7 +94,6 @@ export default function HomeSliderManager() {
     }
   }
 
-  // Start editing
   function handleEditSlide(slide: Slide) {
     setEditSlide(slide);
     setFile(null);
@@ -159,9 +158,7 @@ export default function HomeSliderManager() {
                     {slide.media_type === "video" ? (
                       <video src={slide.media_url} controls className="w-40 h-28 object-cover rounded" />
                     ) : (
-                      <div className="relative w-40 h-28">
-                        <Image src={slide.media_url} alt={`Slide ${slide.id}`} fill style={{ objectFit: "cover" }} className="rounded" />
-                      </div>
+                      <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-40 h-28 object-cover rounded" />
                     )}
                   </td>
                   <td className="p-3 flex gap-2">
@@ -199,9 +196,7 @@ export default function HomeSliderManager() {
               {slide.media_type === "video" ? (
                 <video src={slide.media_url} controls className="w-full h-48 object-cover rounded" />
               ) : (
-                <div className="relative w-full h-48">
-                  <Image src={slide.media_url} alt={`Slide ${slide.id}`} fill style={{ objectFit: "cover" }} className="rounded" />
-                </div>
+                <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-full h-48 object-cover rounded" />
               )}
               <div className="flex gap-2">
                 <button
