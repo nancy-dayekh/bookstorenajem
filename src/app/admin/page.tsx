@@ -86,15 +86,20 @@ export default function AdminDashboard() {
         const { data: items } = await supabase
           .from("checkout_items")
           .select("quantity, add_products(name)");
-        const typedItems: CheckoutItem[] = (items || []).map((item) => ({
+        const typedItems: CheckoutItem[] = (items || []).map((item: any) => ({
           quantity: item.quantity,
-          add_products: item.add_products || [],
+          // Take the first product if exists, otherwise undefined
+          add_products:
+            item.add_products?.length > 0 ? item.add_products[0] : undefined,
         }));
+
+        // Then calculate product sales
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
-          const name = item.add_products?.name || "Unknown";
+          const name = item.add_products?.name || "Unknown"; // fallback
           productSales[name] = (productSales[name] || 0) + item.quantity;
         });
+
         setTopProducts(
           Object.entries(productSales)
             .map(([name, quantity]) => ({ name, quantity }))
