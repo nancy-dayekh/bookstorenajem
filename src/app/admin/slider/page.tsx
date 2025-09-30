@@ -5,6 +5,7 @@ import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
+// Slide type
 type Slide = {
   id: number;
   media_url: string;
@@ -18,7 +19,11 @@ export default function HomeSliderManager() {
 
   // Fetch slides
   async function fetchSlides() {
-    const { data, error } = await supabase.from<Slide>("home_slider").select("*").order("id", { ascending: true });
+    const { data, error } = await supabase
+      .from<Slide, Slide>("home_slider") // <-- Fix: two type arguments
+      .select("*")
+      .order("id", { ascending: true });
+
     if (error) toast.error(error.message);
     else setSlides(data || []);
   }
@@ -26,10 +31,15 @@ export default function HomeSliderManager() {
   // Upload file
   async function uploadFile(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("home-slider").upload(fileName, file, { upsert: true });
+    const { error: uploadError } = await supabase.storage
+      .from("home-slider")
+      .upload(fileName, file, { upsert: true });
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage.from("home-slider").getPublicUrl(fileName);
+    const { data: publicUrlData } = supabase.storage
+      .from("home-slider")
+      .getPublicUrl(fileName);
+
     return {
       url: publicUrlData.publicUrl,
       type: file.type.startsWith("video") ? "video" : "image",
@@ -44,12 +54,19 @@ export default function HomeSliderManager() {
       const { url, type } = await uploadFile(file);
 
       if (editSlide) {
-        const { error } = await supabase.from("home_slider").update({ media_url: url, media_type: type }).eq("id", editSlide.id);
+        const { error } = await supabase
+          .from<Slide, Slide>("home_slider") // <-- Fix here too
+          .update({ media_url: url, media_type: type })
+          .eq("id", editSlide.id);
+
         if (error) throw error;
         toast.success("Slide Updated!");
         setEditSlide(null);
       } else {
-        const { error } = await supabase.from("home_slider").insert([{ media_url: url, media_type: type }]);
+        const { error } = await supabase
+          .from<Slide, Slide>("home_slider") // <-- Fix here too
+          .insert([{ media_url: url, media_type: type }]);
+
         if (error) throw error;
         toast.success("Slide Added!");
       }
@@ -67,9 +84,13 @@ export default function HomeSliderManager() {
       if (!slide) return toast.error("Slide not found.");
 
       const fileName = slide.media_url.split("/").pop();
-      await supabase.storage.from("home-slider").remove([fileName!]);
+      if (fileName) await supabase.storage.from("home-slider").remove([fileName]);
 
-      const { error } = await supabase.from("home_slider").delete().eq("id", id);
+      const { error } = await supabase
+        .from<Slide, Slide>("home_slider") // <-- Fix here too
+        .delete()
+        .eq("id", id);
+
       if (error) throw error;
 
       toast.success("Slide Deleted!");
@@ -94,7 +115,6 @@ export default function HomeSliderManager() {
       <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center text-pink-600">
         Home Slider Management
       </h1>
-
       {/* Add/Edit Form */}
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
         <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
@@ -141,10 +161,20 @@ export default function HomeSliderManager() {
                   <td className="p-3">{slide.id}</td>
                   <td className="p-3">
                     {slide.media_type === "video" ? (
-                      <video src={slide.media_url} controls className="w-40 h-28 object-cover rounded" />
+                      <video
+                        src={slide.media_url}
+                        controls
+                        className="w-40 h-28 object-cover rounded"
+                      />
                     ) : (
                       <div className="relative w-40 h-28">
-                        <Image src={slide.media_url} alt={`Slide ${slide.id}`} fill style={{ objectFit: "cover" }} className="rounded" />
+                        <Image
+                          src={slide.media_url}
+                          alt={`Slide ${slide.id}`}
+                          fill
+                          style={{ objectFit: "cover" }}
+                          className="rounded"
+                        />
                       </div>
                     )}
                   </td>
@@ -177,14 +207,29 @@ export default function HomeSliderManager() {
 
         {/* Mobile Cards */}
         <div className="sm:hidden flex flex-col gap-4 p-4">
-          {slides.length === 0 && <p className="text-center text-gray-500">No slides yet.</p>}
+          {slides.length === 0 && (
+            <p className="text-center text-gray-500">No slides yet.</p>
+          )}
           {slides.map((slide) => (
-            <div key={slide.id} className="border rounded-lg shadow-sm p-3 flex flex-col gap-3">
+            <div
+              key={slide.id}
+              className="border rounded-lg shadow-sm p-3 flex flex-col gap-3"
+            >
               {slide.media_type === "video" ? (
-                <video src={slide.media_url} controls className="w-full h-48 object-cover rounded" />
+                <video
+                  src={slide.media_url}
+                  controls
+                  className="w-full h-48 object-cover rounded"
+                />
               ) : (
                 <div className="relative w-full h-48">
-                  <Image src={slide.media_url} alt={`Slide ${slide.id}`} fill style={{ objectFit: "cover" }} className="rounded" />
+                  <Image
+                    src={slide.media_url}
+                    alt={`Slide ${slide.id}`}
+                    fill
+                    style={{ objectFit: "cover" }}
+                    className="rounded"
+                  />
                 </div>
               )}
               <div className="flex gap-2">
