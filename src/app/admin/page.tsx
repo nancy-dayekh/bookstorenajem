@@ -140,7 +140,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <h1
-          className="text-3xl sm:text-4xl font-bold px-4 py-2 rounded-xl"
+          className="text-3xl sm:text-4xl font-bold px-4 py-2 rounded-xl text-center sm:text-left w-full sm:w-auto"
           style={{
             backgroundColor: mainColor.hex,
             color: mainColor.text_color,
@@ -149,7 +149,10 @@ export default function AdminDashboard() {
           🛍️ Admin Dashboard
         </h1>
 
-        <div className="relative">
+        {/* Profile Icon */}
+        <div className="relative ml-auto">
+          {" "}
+          {/* Use ml-auto to push it to the right */}
           <button
             onClick={() => setProfileOpen(!profileOpen)}
             className="p-3 rounded-full shadow hover:shadow-md transition"
@@ -174,7 +177,10 @@ export default function AdminDashboard() {
               <button
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-2"
-                style={{ color: "red", backgroundColor: mainColor.hover_color }}
+                style={{
+                  color: "red",
+                  backgroundColor: mainColor.hover_color || "transparent",
+                }}
               >
                 Logout
               </button>
@@ -194,13 +200,13 @@ export default function AdminDashboard() {
           return (
             <div
               key={card.title}
-              className="rounded-3xl shadow-lg p-6 sm:p-8 flex flex-col justify-center items-center hover:shadow-2xl transition transform hover:-translate-y-1"
+              className="rounded-3xl shadow-lg p-4 sm:p-8 flex flex-col justify-center items-center hover:shadow-2xl transition transform hover:-translate-y-1"
               style={{
                 backgroundColor: cardColor.hex,
                 color: cardColor.text_color,
               }}
             >
-              <p className="font-semibold uppercase tracking-wide">
+              <p className="font-semibold uppercase tracking-wide text-center">
                 {card.title}
               </p>
               <p className="mt-3 text-3xl sm:text-5xl font-bold">
@@ -214,7 +220,7 @@ export default function AdminDashboard() {
       {/* Year Filter */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
         <h2
-          className="text-xl sm:text-2xl font-semibold px-4 py-2 rounded-xl"
+          className="text-xl sm:text-2xl font-semibold px-4 py-2 rounded-xl text-center sm:text-left w-full sm:w-auto"
           style={{
             backgroundColor: mainColor.hex,
             color: mainColor.text_color,
@@ -223,7 +229,7 @@ export default function AdminDashboard() {
           Revenue by Month ({selectedYear})
         </h2>
         <select
-          className="border rounded-xl p-2 shadow-sm focus:outline-none focus:ring-2 transition"
+          className="border rounded-xl p-2 shadow-sm focus:outline-none focus:ring-2 transition w-full sm:w-auto"
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
           style={{
@@ -239,8 +245,13 @@ export default function AdminDashboard() {
 
       {/* Revenue BarChart */}
       <div className="rounded-3xl shadow-lg p-4 sm:p-6 hover:shadow-2xl transition mt-6">
-        <h2 className="text-lg font-semibold mb-4">Revenue by Month</h2>
-        <ResponsiveContainer width="100%" height={300}>
+        <h2 className="text-lg font-semibold mb-4 text-center sm:text-left">
+          Revenue by Month
+        </h2>
+        <ResponsiveContainer
+          width="100%"
+          height={window.innerWidth < 640 ? 200 : 300}
+        >
           <BarChart data={monthlyData}>
             <CartesianGrid
               stroke={mainColor.text_color}
@@ -275,22 +286,21 @@ export default function AdminDashboard() {
 
       {/* Top Products Pie Chart */}
       <div
-        className="rounded-3xl shadow-lg p-6 mt-6 transition-all duration-300 relative overflow-hidden hover:shadow-2xl"
+        className="rounded-3xl shadow-lg p-4 sm:p-6 mt-6 transition-all duration-300 relative overflow-hidden hover:shadow-2xl"
         style={{
           backgroundColor: mainColor.hex,
           color: mainColor.text_color,
         }}
       >
-        {/* دائرة Hover شفافة */}
         <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
 
-        <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10">
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10 text-center sm:text-left">
           🏆 Top Selling Products
         </h2>
 
         <ResponsiveContainer
           width="100%"
-          height={300}
+          height={window.innerWidth < 640 ? 200 : 300}
           className="relative z-10"
         >
           <PieChart>
@@ -300,7 +310,7 @@ export default function AdminDashboard() {
               nameKey="name"
               cx="50%"
               cy="50%"
-              outerRadius={120}
+              outerRadius={window.innerWidth < 640 ? 80 : 120}
               label={({ name, percent }) =>
                 `${name} ${(Number(percent) * 100).toFixed(0)}%`
               }
