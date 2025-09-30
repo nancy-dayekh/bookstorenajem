@@ -302,19 +302,23 @@ export default function AdminDashboard() {
           className="relative z-10"
         >
           <PieChart>
-          <Pie
-  data={topProducts}
-  dataKey="quantity"
-  nameKey="name"
-  cx="50%"
-  cy="50%"
-  outerRadius={120}
-  label={(props) => {
-    const { name, percent } = props as { name: string; percent?: number };
-    return `${name} ${percent !== undefined ? (percent * 100).toFixed(0) : 0}%`;
-  }}
->
-
+            <Pie
+              data={topProducts}
+              dataKey="quantity"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={120}
+              label={(props) => {
+                const { name, percent } = props as {
+                  name: string;
+                  percent?: number;
+                };
+                return `${name} ${
+                  percent !== undefined ? (percent * 100).toFixed(0) : 0
+                }%`;
+              }}
+            >
               {topProducts.map((_, index) => {
                 const zaraColors = [
                   "#222222",
