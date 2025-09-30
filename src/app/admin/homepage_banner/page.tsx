@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import Image from "next/image";
 
-// Define a proper type for banners
+// Define a Banner type
 type Banner = {
   id: number;
   title: string;
@@ -22,35 +22,54 @@ export default function BannerManager() {
 
   // Fetch banners
   async function fetchBanners() {
-    const { data, error } = await supabase.from<Banner>("homepage_banner").select("*").order("id", { ascending: true });
+    const { data, error } = await supabase
+      .from("homepage_banner")
+      .select("*")
+      .order("id", { ascending: true });
+
     if (error) toast.error(error.message);
-    else setBanners(data || []);
+    else setBanners((data as Banner[]) || []);
   }
 
   // Upload image
   async function uploadImage(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("homepage_banner").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage
+      .from("homepage_banner")
+      .upload(fileName, file);
+
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from("homepage_banner").getPublicUrl(fileName);
+    const { data } = supabase.storage
+      .from("homepage_banner")
+      .getPublicUrl(fileName);
+
     return data.publicUrl;
   }
 
   // Add or Update banner
   async function handleSaveBanner() {
-    if (!title || (!file && !editingBanner)) return toast.error("Title and Image are required.");
+    if (!title || (!file && !editingBanner)) {
+      return toast.error("Title and Image are required.");
+    }
 
     try {
       let imageUrl = editingBanner?.image_url || "";
       if (file) imageUrl = await uploadImage(file);
 
       if (editingBanner) {
-        const { error } = await supabase.from("homepage_banner").update({ title, description, image_url: imageUrl }).eq("id", editingBanner.id);
+        // Update
+        const { error } = await supabase
+          .from("homepage_banner")
+          .update({ title, description, image_url: imageUrl })
+          .eq("id", editingBanner.id);
         if (error) throw error;
         toast.success("Banner updated!");
       } else {
-        const { error } = await supabase.from("homepage_banner").insert([{ title, description, image_url: imageUrl }]);
+        // Insert
+        const { error } = await supabase
+          .from("homepage_banner")
+          .insert([{ title, description, image_url: imageUrl }]);
         if (error) throw error;
         toast.success("Banner added!");
       }
@@ -60,8 +79,8 @@ export default function BannerManager() {
       setFile(null);
       setEditingBanner(null);
       fetchBanners();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   }
 
@@ -72,8 +91,8 @@ export default function BannerManager() {
       if (error) throw error;
       toast.success("Banner deleted!");
       fetchBanners();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   }
 
@@ -151,9 +170,13 @@ export default function BannerManager() {
                 <td className="p-3">{banner.description}</td>
                 <td className="p-3">
                   {banner.image_url && (
-                    <div className="relative w-20 h-20">
-                      <Image src={banner.image_url} alt={`Banner ${banner.id}`} fill style={{ objectFit: "contain" }} className="rounded" />
-                    </div>
+                    <Image
+                      src={banner.image_url}
+                      alt={`Banner ${banner.id}`}
+                      width={80}
+                      height={80}
+                      className="object-contain rounded"
+                    />
                   )}
                 </td>
                 <td className="p-3 flex gap-2">
