@@ -17,7 +17,11 @@ import {
 } from "recharts";
 import toast, { Toaster } from "react-hot-toast";
 
-type Order = { id: string | number; total: number | string; created_at: string };
+type Order = {
+  id: string | number;
+  total: number | string;
+  created_at: string;
+};
 type CheckoutItem = { quantity: number; add_products?: { name: string } };
 type TopProduct = { name: string; quantity: number };
 type MonthlyData = { month: string; revenue: number };
@@ -34,14 +38,20 @@ export default function AdminDashboard() {
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
   const [years, setYears] = useState<number[]>([]);
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [userName, setUserName] = useState<string>("Admin");
   const [profileOpen, setProfileOpen] = useState<boolean>(false);
   const [colors, setColors] = useState<Color[]>([]);
 
   async function fetchColors() {
-    const { data, error } = await supabase.from<Color>("colors").select("*").order("id");
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id");
+    setColors((data as Color[]) || []);
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
@@ -56,16 +66,26 @@ export default function AdminDashboard() {
           .single();
         if (!adminError && adminData) setUserName(adminData.name || "Admin");
 
-        const { data: checkouts } = await supabase.from("checkouts").select("id,total,created_at");
+        const { data: checkouts } = await supabase
+          .from("checkouts")
+          .select("id,total,created_at");
         const typedCheckouts = (checkouts || []) as Order[];
         setOrdersCount(typedCheckouts.length);
-        setTotalRevenue(typedCheckouts.reduce((sum, c) => sum + Number(c.total), 0));
+        setTotalRevenue(
+          typedCheckouts.reduce((sum, c) => sum + Number(c.total), 0)
+        );
 
-        setYears([...new Set(typedCheckouts.map((c) => new Date(c.created_at).getFullYear()))]);
+        setYears([
+          ...new Set(
+            typedCheckouts.map((c) => new Date(c.created_at).getFullYear())
+          ),
+        ]);
 
         calculateMonthlyRevenue(typedCheckouts, selectedYear);
 
-        const { data: items } = await supabase.from("checkout_items").select("quantity, add_products(name)");
+        const { data: items } = await supabase
+          .from("checkout_items")
+          .select("quantity, add_products(name)");
         const typedItems = (items || []) as CheckoutItem[];
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
@@ -79,7 +99,9 @@ export default function AdminDashboard() {
             .slice(0, 5)
         );
 
-        const { data: allProducts } = await supabase.from("add_products").select("id");
+        const { data: allProducts } = await supabase
+          .from("add_products")
+          .select("id");
         setTotalProducts(allProducts?.length || 0);
       } catch (err) {
         console.error(err);
@@ -97,7 +119,12 @@ export default function AdminDashboard() {
     }));
     checkouts
       .filter((c) => new Date(c.created_at).getFullYear() === year)
-      .forEach((c) => (monthly[new Date(c.created_at).getMonth()].revenue += Number(c.total)));
+      .forEach(
+        (c) =>
+          (monthly[new Date(c.created_at).getMonth()].revenue += Number(
+            c.total
+          ))
+      );
     setMonthlyData(monthly);
   };
 
@@ -114,7 +141,10 @@ export default function AdminDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <h1
           className="text-3xl sm:text-4xl font-bold px-4 py-2 rounded-xl"
-          style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
+          style={{
+            backgroundColor: mainColor.hex,
+            color: mainColor.text_color,
+          }}
         >
           🛍️ Admin Dashboard
         </h1>
@@ -123,14 +153,20 @@ export default function AdminDashboard() {
           <button
             onClick={() => setProfileOpen(!profileOpen)}
             className="p-3 rounded-full shadow hover:shadow-md transition"
-            style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
+            style={{
+              backgroundColor: mainColor.hex,
+              color: mainColor.text_color,
+            }}
           >
             👤
           </button>
           {profileOpen && (
             <div
               className="absolute right-0 mt-2 w-48 border rounded-xl shadow-lg z-10"
-              style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
+              style={{
+                backgroundColor: mainColor.hex,
+                color: mainColor.text_color,
+              }}
             >
               <div className="px-4 py-3 text-sm">
                 Signed in as <strong>{userName}</strong>
@@ -159,10 +195,17 @@ export default function AdminDashboard() {
             <div
               key={card.title}
               className="rounded-3xl shadow-lg p-6 sm:p-8 flex flex-col justify-center items-center hover:shadow-2xl transition transform hover:-translate-y-1"
-              style={{ backgroundColor: cardColor.hex, color: cardColor.text_color }}
+              style={{
+                backgroundColor: cardColor.hex,
+                color: cardColor.text_color,
+              }}
             >
-              <p className="font-semibold uppercase tracking-wide">{card.title}</p>
-              <p className="mt-3 text-3xl sm:text-5xl font-bold">{card.value}</p>
+              <p className="font-semibold uppercase tracking-wide">
+                {card.title}
+              </p>
+              <p className="mt-3 text-3xl sm:text-5xl font-bold">
+                {card.value}
+              </p>
             </div>
           );
         })}
@@ -170,14 +213,23 @@ export default function AdminDashboard() {
 
       {/* Year Filter */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
-        <h2 className="text-xl sm:text-2xl font-semibold px-4 py-2 rounded-xl" style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}>
+        <h2
+          className="text-xl sm:text-2xl font-semibold px-4 py-2 rounded-xl"
+          style={{
+            backgroundColor: mainColor.hex,
+            color: mainColor.text_color,
+          }}
+        >
           Revenue by Month ({selectedYear})
         </h2>
         <select
           className="border rounded-xl p-2 shadow-sm focus:outline-none focus:ring-2 transition"
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
-          style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
+          style={{
+            backgroundColor: mainColor.hex,
+            color: mainColor.text_color,
+          }}
         >
           {years.map((year) => (
             <option key={year}>{year}</option>
@@ -190,15 +242,33 @@ export default function AdminDashboard() {
         <h2 className="text-lg font-semibold mb-4">Revenue by Month</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyData}>
-            <CartesianGrid stroke={mainColor.text_color} strokeDasharray="4 4" />
-            <XAxis dataKey="month" stroke={mainColor.text_color} tick={{ fill: mainColor.text_color }} />
-            <YAxis stroke={mainColor.text_color} tick={{ fill: mainColor.text_color }} />
+            <CartesianGrid
+              stroke={mainColor.text_color}
+              strokeDasharray="4 4"
+            />
+            <XAxis
+              dataKey="month"
+              stroke={mainColor.text_color}
+              tick={{ fill: mainColor.text_color }}
+            />
+            <YAxis
+              stroke={mainColor.text_color}
+              tick={{ fill: mainColor.text_color }}
+            />
             <Tooltip
-              contentStyle={{ backgroundColor: mainColor.hex, color: mainColor.text_color, borderRadius: "12px" }}
+              contentStyle={{
+                backgroundColor: mainColor.hex,
+                color: mainColor.text_color,
+                borderRadius: "12px",
+              }}
               itemStyle={{ color: mainColor.text_color }}
               labelStyle={{ color: mainColor.text_color }}
             />
-            <Bar dataKey="revenue" fill={mainColor.hover_color || "#ec4899"} radius={[12, 12, 0, 0]} />
+            <Bar
+              dataKey="revenue"
+              fill={mainColor.hover_color || "#ec4899"}
+              radius={[12, 12, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -214,9 +284,15 @@ export default function AdminDashboard() {
         {/* دائرة Hover شفافة */}
         <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
 
-        <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10">🏆 Top Selling Products</h2>
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10">
+          🏆 Top Selling Products
+        </h2>
 
-        <ResponsiveContainer width="100%" height={300} className="relative z-10">
+        <ResponsiveContainer
+          width="100%"
+          height={300}
+          className="relative z-10"
+        >
           <PieChart>
             <Pie
               data={topProducts}
@@ -225,10 +301,18 @@ export default function AdminDashboard() {
               cx="50%"
               cy="50%"
               outerRadius={120}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              label={({ name, percent }) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
+              }
             >
               {topProducts.map((_, index) => {
-                const zaraColors = ["#222222", "#555555", "#999999", "#ffffff", "#f5f5f5"];
+                const zaraColors = [
+                  "#222222",
+                  "#555555",
+                  "#999999",
+                  "#ffffff",
+                  "#f5f5f5",
+                ];
                 const color = zaraColors[index % zaraColors.length];
                 return <Cell key={index} fill={color} stroke="#000" />;
               })}
