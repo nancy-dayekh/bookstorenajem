@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -13,28 +14,48 @@ import {
   CreditCard,
   Bell,
   Palette,
-  Image,
+  Image as IconImage,
 } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
+import Image from "next/image";
+import toast, { Toaster } from "react-hot-toast";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [secondLogoUrl, setSecondLogoUrl] = useState<string | null>(null);
+  const [colors, setColors] = useState<any[]>([]);
+
   const pathname = usePathname();
   const router = useRouter();
-
   const today = new Date().toISOString().split("T")[0];
 
+  async function fetchColors() {
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id", { ascending: true });
+    if (error) toast.error(error.message);
+    else setColors(data || []);
+  }
+
   useEffect(() => {
-    // تحقق من وجود auth
     const auth = localStorage.getItem("admin-auth");
     if (!auth) router.push("/login");
 
-    // جلب عدد الطلبات الجديدة اليوم
+    const fetchLogos = async () => {
+      const { data, error } = await supabase
+        .from("logos")
+        .select("logo_url")
+        .order("id", { ascending: false })
+        .limit(2);
+      if (!error && data) {
+        setLogoUrl(data[0]?.logo_url || null);
+        setSecondLogoUrl(data[1]?.logo_url || null);
+      }
+    };
+
     const fetchNewOrdersCount = async () => {
       const { count, error } = await supabase
         .from("checkouts")
@@ -42,13 +63,13 @@ export default function AdminLayout({
         .eq("status", "Pending")
         .gte("created_at", today + "T00:00:00")
         .lte("created_at", today + "T23:59:59");
-
       if (!error) setNewOrdersCount(count || 0);
     };
 
+    fetchLogos();
+    fetchColors();
     fetchNewOrdersCount();
 
-    // Realtime subscription للطلبات الجديدة
     const subscription = supabase
       .channel("orders_today")
       .on(
@@ -56,33 +77,13 @@ export default function AdminLayout({
         { event: "INSERT", schema: "public", table: "checkouts" },
         (payload) => {
           const orderDate = payload.new.created_at.split("T")[0];
-          if (orderDate === today) {
-            setNewOrdersCount((prev) => prev + 1);
-
-            // Web Notification
-            if (Notification.permission === "granted") {
-              new Notification("طلب جديد", {
-                body: `${payload.new.first_name} ${payload.new.last_name} | إجمالي: $${payload.new.total}`,
-              });
-            } else if (Notification.permission !== "denied") {
-              Notification.requestPermission().then((permission) => {
-                if (permission === "granted") {
-                  new Notification("طلب جديد", {
-                    body: `${payload.new.first_name} ${payload.new.last_name} | إجمالي: $${payload.new.total}`,
-                  });
-                }
-              });
-            }
-          }
+          if (orderDate === today) setNewOrdersCount((prev) => prev + 1);
         }
       )
       .subscribe();
 
-    // ✅ FIX: do NOT return a Promise from cleanup
-    return () => {
-      supabase.removeChannel(subscription); // no await here!
-    };
-  }, [router, today]); // ✅ add today as dependency
+    return () => supabase.removeChannel(subscription);
+  }, [router, today]);
 
   const links = [
     { href: "/admin", label: "Dashboard", Icon: LayoutDashboard },
@@ -92,45 +93,40 @@ export default function AdminLayout({
     { href: "/admin/checkouts", label: "Checkouts", Icon: CreditCard },
     { href: "/admin/logo", label: "Logos", Icon: Package },
     { href: "/admin/colors", label: "Colors", Icon: Palette },
-    { href: "/admin/slider", label: "Slider", Icon: Image },
-    {
-      href: "/admin/homepage_banner",
-      label: "Home Banner",
-      Icon: LayoutDashboard,
-    },
-    {
-      href: "/admin/notifications",
-      label: "Notifications",
-      Icon: Bell,
-      hasCount: true,
-    },
+    { href: "/admin/slider", label: "Slider", Icon: IconImage },
+    { href: "/admin/homepage_banner", label: "Home Banner", Icon: LayoutDashboard },
+    { href: "/admin/notifications", label: "Notifications", Icon: Bell, hasCount: true },
     { href: "/admin/multiImages", label: "MultiImages", Icon: Package },
   ];
 
+  if (!colors[0]) return null;
+  const mainColor = colors[0];
+
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gray-100">
-      {/* Mobile Top Navbar */}
-      <header className="md:hidden flex items-center justify-between bg-white shadow px-4 py-3 sticky top-0 z-50">
-        <h1 className="text-xl font-bold text-pink-600">Admin</h1>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-2 rounded-md hover:bg-gray-100 focus:outline-none"
-          aria-label="Toggle Menu"
-        >
-          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+    <div className="min-h-screen flex flex-col md:flex-row" style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}>
+      <Toaster position="top-right" />
+
+      {/* Mobile Navbar */}
+      <header className="md:hidden flex items-center justify-start shadow px-4 py-3 sticky top-0 z-50 gap-2"
+              style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}>
+        <div className="flex gap-2">
+          {logoUrl && <div className="relative w-[100px] h-[60px] sm:w-[100px] sm:h-[70px]"><Image src={logoUrl} alt="Logo 1" fill style={{ objectFit: "contain" }} /></div>}
+          {secondLogoUrl && <div className="relative w-[70px] h-[60px] sm:w-[80px] sm:h-[70px]"><Image src={secondLogoUrl} alt="Logo 2" fill style={{ objectFit: "contain" }} /></div>}
+        </div>
+        <button onClick={() => setIsOpen(!isOpen)} className="ml-auto p-2 rounded-md hover:bg-gray-100 focus:outline-none transition">
+          {isOpen ? <X className="h-6 w-6" style={{ color: mainColor.text_color }} /> : <Menu className="h-6 w-6" style={{ color: mainColor.text_color }} />}
         </button>
       </header>
 
       {/* Sidebar */}
-      <aside
-        className={`fixed md:static top-0 left-0 h-full w-64 bg-white shadow-lg flex flex-col transition-transform duration-300 ease-in-out z-40
-        ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
-      >
-        <div className="hidden md:block p-4 text-2xl font-bold border-b text-pink-600">
-          Admin
+      <aside className={`fixed md:static top-0 left-0 h-full shadow-xl flex flex-col transition-transform duration-300 ease-in-out z-40 ${isOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0`}
+             style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}>
+        <div className="flex items-center justify-start gap-2 h-24 px-6">
+          {logoUrl && <div className="relative w-[200px] h-[80px] md:w-[220px] md:h-[100px] sm:w-[100px] sm:h-[100px]"><Image src={logoUrl} alt="Logo 1" fill style={{ objectFit: "contain" }} /></div>}
+          {secondLogoUrl && <div className="relative w-[100px] h-[80px] md:w-[120px] md:h-[80px] sm:w-[100px] sm:h-[100px]"><Image src={secondLogoUrl} alt="Logo 2" fill style={{ objectFit: "contain" }} /></div>}
         </div>
 
-        <nav className="flex flex-col p-4 space-y-2">
+        <nav className="flex flex-col mt-6 px-4 space-y-3 font-sans text-base">
           {links.map(({ href, label, Icon, hasCount }) => {
             const isActive = pathname === href;
             return (
@@ -138,24 +134,24 @@ export default function AdminLayout({
                 key={href}
                 href={href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center justify-between gap-3 p-2 rounded font-medium transition
-                  ${
-                    isActive
-                      ? "bg-pink-100 text-pink-600 font-semibold"
-                      : "hover:bg-pink-50"
-                  }`}
+                className={`flex items-center justify-between gap-4 py-3 px-3 rounded-lg transition-all duration-300`}
+                style={{
+                  backgroundColor: isActive ? mainColor.hover_color : "transparent",
+                  color: mainColor.text_color,
+                  borderLeft: isActive ? `4px solid ${mainColor.text_color}` : "4px solid transparent",
+                  fontWeight: 600,
+                  letterSpacing: "0.5px",
+                }}
               >
                 <div className="flex items-center gap-3">
-                  <Icon
-                    className={`h-5 w-5 ${
-                      isActive ? "text-pink-600" : "text-gray-600"
-                    }`}
-                  />
-                  {label}
+                  <Icon className="h-6 w-6" style={{ color: mainColor.text_color }} />
+                  <span>{label}</span>
                 </div>
-
                 {hasCount && newOrdersCount > 0 && (
-                  <span className="ml-2 bg-pink-600 text-white rounded-full px-2 text-xs animate-pulse">
+                  <span
+                    className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold animate-bounce shadow-md"
+                    style={{ backgroundColor: mainColor.text_color, color: mainColor.hex }}
+                  >
                     {newOrdersCount}
                   </span>
                 )}
@@ -166,15 +162,12 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-6 mt-14 md:mt-0">{children}</main>
+      <main className="flex-1 mt-14 md:mt-0 p-6 md:p-8">
+        {children}
+      </main>
 
       {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black/30 md:hidden z-30"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 bg-black/30 md:hidden z-30" onClick={() => setIsOpen(false)} />}
     </div>
   );
 }
