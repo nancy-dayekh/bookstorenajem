@@ -302,7 +302,7 @@ export default function AdminDashboard() {
               cy="50%"
               outerRadius={120}
               label={({ name, percent }) =>
-                `${name} ${(percent * 100).toFixed(0)}%`
+                `${name} ${(Number(percent) * 100).toFixed(0)}%`
               }
             >
               {topProducts.map((_, index) => {
