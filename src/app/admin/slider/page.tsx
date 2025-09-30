@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
 
 type Slide = {
   id: number;
@@ -17,34 +18,25 @@ export default function HomeSliderManager() {
 
   // Fetch slides
   async function fetchSlides() {
-    const { data, error } = await supabase
-      .from("home_slider")
-      .select("*")
-      .order("id", { ascending: true });
-
+    const { data, error } = await supabase.from<Slide>("home_slider").select("*").order("id", { ascending: true });
     if (error) toast.error(error.message);
-    else setSlides((data as Slide[]) || []);
+    else setSlides(data || []);
   }
 
   // Upload file
   async function uploadFile(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("home-slider")
-      .upload(fileName, file, { upsert: true });
-
+    const { error: uploadError } = await supabase.storage.from("home-slider").upload(fileName, file, { upsert: true });
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage
-      .from("home-slider")
-      .getPublicUrl(fileName);
-
+    const { data: publicUrlData } = supabase.storage.from("home-slider").getPublicUrl(fileName);
     return {
       url: publicUrlData.publicUrl,
       type: file.type.startsWith("video") ? "video" : "image",
     };
   }
 
+  // Add or update slide
   async function handleSubmit() {
     if (!file) return toast.error("Please select an image or video.");
 
@@ -52,20 +44,13 @@ export default function HomeSliderManager() {
       const { url, type } = await uploadFile(file);
 
       if (editSlide) {
-        const { error } = await supabase
-          .from("home_slider")
-          .update({ media_url: url, media_type: type })
-          .eq("id", editSlide.id);
+        const { error } = await supabase.from("home_slider").update({ media_url: url, media_type: type }).eq("id", editSlide.id);
         if (error) throw error;
-
         toast.success("Slide Updated!");
         setEditSlide(null);
       } else {
-        const { error } = await supabase
-          .from("home_slider")
-          .insert([{ media_url: url, media_type: type }]);
+        const { error } = await supabase.from("home_slider").insert([{ media_url: url, media_type: type }]);
         if (error) throw error;
-
         toast.success("Slide Added!");
       }
 
@@ -158,7 +143,9 @@ export default function HomeSliderManager() {
                     {slide.media_type === "video" ? (
                       <video src={slide.media_url} controls className="w-40 h-28 object-cover rounded" />
                     ) : (
-                      <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-40 h-28 object-cover rounded" />
+                      <div className="relative w-40 h-28">
+                        <Image src={slide.media_url} alt={`Slide ${slide.id}`} fill style={{ objectFit: "cover" }} className="rounded" />
+                      </div>
                     )}
                   </td>
                   <td className="p-3 flex gap-2">
@@ -196,7 +183,9 @@ export default function HomeSliderManager() {
               {slide.media_type === "video" ? (
                 <video src={slide.media_url} controls className="w-full h-48 object-cover rounded" />
               ) : (
-                <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-full h-48 object-cover rounded" />
+                <div className="relative w-full h-48">
+                  <Image src={slide.media_url} alt={`Slide ${slide.id}`} fill style={{ objectFit: "cover" }} className="rounded" />
+                </div>
               )}
               <div className="flex gap-2">
                 <button
