@@ -3,18 +3,28 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
+
+// Define proper Banner type
+interface Banner {
+  id: number;
+  title: string;
+  description: string;
+  image_url: string;
+  created_at?: string;
+}
 
 export default function BannerManager() {
-  const [banners, setBanners] = useState<any[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [editingBanner, setEditingBanner] = useState<any>(null);
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
 
   // Fetch banners
   async function fetchBanners() {
     const { data, error } = await supabase
-      .from("homepage_banner")
+      .from<Banner>("homepage_banner")
       .select("*")
       .order("id", { ascending: true });
     if (error) toast.error(error.message);
@@ -38,7 +48,8 @@ export default function BannerManager() {
 
   // Add or Update banner
   async function handleSaveBanner() {
-    if (!title || !file && !editingBanner) return toast.error("Title and Image are required.");
+    if (!title || (!file && !editingBanner))
+      return toast.error("Title and Image are required.");
 
     try {
       let imageUrl = editingBanner?.image_url || "";
@@ -84,7 +95,7 @@ export default function BannerManager() {
   }
 
   // Start editing
-  function startEdit(banner: any) {
+  function startEdit(banner: Banner) {
     setEditingBanner(banner);
     setTitle(banner.title);
     setDescription(banner.description);
@@ -157,11 +168,15 @@ export default function BannerManager() {
                 <td className="p-3">{banner.description}</td>
                 <td className="p-3">
                   {banner.image_url && (
-                    <img
-                      src={banner.image_url}
-                      alt={`Banner ${banner.id}`}
-                      className="w-20 h-20 object-contain rounded"
-                    />
+                    <div className="relative w-20 h-20">
+                      <Image
+                        src={banner.image_url}
+                        alt={`Banner ${banner.id}`}
+                        fill
+                        style={{ objectFit: "contain" }}
+                        className="rounded"
+                      />
+                    </div>
                   )}
                 </td>
                 <td className="p-3 flex gap-2">
