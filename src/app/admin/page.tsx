@@ -22,9 +22,7 @@ type Order = {
   total: number | string;
   created_at: string;
 };
-
 type CheckoutItem = { quantity: number; add_products?: { name: string } };
-
 type TopProduct = { name: string; quantity: number };
 type MonthlyData = { month: string; revenue: number };
 
@@ -32,11 +30,6 @@ type Color = {
   hex: string;
   text_color: string;
   hover_color?: string;
-};
-
-type CheckoutItemFromDB = {
-  quantity: number;
-  add_products?: { name: string }[];
 };
 
 export default function AdminDashboard() {
@@ -58,14 +51,14 @@ export default function AdminDashboard() {
       .from("colors")
       .select("*")
       .order("id");
-    if (error) toast.error(error.message);
     setColors((data as Color[]) || []);
+    if (error) toast.error(error.message);
+    else setColors(data || []);
   }
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        // Admin info
         const { data: adminData, error: adminError } = await supabase
           .from("admins")
           .select("name")
@@ -73,12 +66,10 @@ export default function AdminDashboard() {
           .single();
         if (!adminError && adminData) setUserName(adminData.name || "Admin");
 
-        // Orders
         const { data: checkouts } = await supabase
           .from("checkouts")
           .select("id,total,created_at");
         const typedCheckouts = (checkouts || []) as Order[];
-
         setOrdersCount(typedCheckouts.length);
         setTotalRevenue(
           typedCheckouts.reduce((sum, c) => sum + Number(c.total), 0)
@@ -92,25 +83,18 @@ export default function AdminDashboard() {
 
         calculateMonthlyRevenue(typedCheckouts, selectedYear);
 
-        // Checkout items
         const { data: items } = await supabase
           .from("checkout_items")
           .select("quantity, add_products(name)");
-
-        const typedItems: CheckoutItem[] = (items as CheckoutItemFromDB[] || []).map(
-          (item) => ({
-            quantity: item.quantity,
-            add_products: item.add_products?.[0],
-          })
-        );
-
-        // Calculate top products
+        const typedItems: CheckoutItem[] = (items || []).map((item) => ({
+          quantity: item.quantity,
+          add_products: item.add_products || [],
+        }));
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
           const name = item.add_products?.name || "Unknown";
           productSales[name] = (productSales[name] || 0) + item.quantity;
         });
-
         setTopProducts(
           Object.entries(productSales)
             .map(([name, quantity]) => ({ name, quantity }))
@@ -118,7 +102,6 @@ export default function AdminDashboard() {
             .slice(0, 5)
         );
 
-        // Total products
         const { data: allProducts } = await supabase
           .from("add_products")
           .select("id");
@@ -137,7 +120,6 @@ export default function AdminDashboard() {
       month: new Date(0, i).toLocaleString("default", { month: "short" }),
       revenue: 0,
     }));
-
     checkouts
       .filter((c) => new Date(c.created_at).getFullYear() === year)
       .forEach(
@@ -146,7 +128,6 @@ export default function AdminDashboard() {
             c.total
           ))
       );
-
     setMonthlyData(monthly);
   };
 
@@ -264,13 +245,19 @@ export default function AdminDashboard() {
         <h2 className="text-lg font-semibold mb-4">Revenue by Month</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyData}>
-            <CartesianGrid stroke={mainColor.text_color} strokeDasharray="4 4" />
+            <CartesianGrid
+              stroke={mainColor.text_color}
+              strokeDasharray="4 4"
+            />
             <XAxis
               dataKey="month"
               stroke={mainColor.text_color}
               tick={{ fill: mainColor.text_color }}
             />
-            <YAxis stroke={mainColor.text_color} tick={{ fill: mainColor.text_color }} />
+            <YAxis
+              stroke={mainColor.text_color}
+              tick={{ fill: mainColor.text_color }}
+            />
             <Tooltip
               contentStyle={{
                 backgroundColor: mainColor.hex,
@@ -297,14 +284,18 @@ export default function AdminDashboard() {
           color: mainColor.text_color,
         }}
       >
-        {/* Hover circle */}
+        {/* دائرة Hover شفافة */}
         <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
 
         <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10">
           🏆 Top Selling Products
         </h2>
 
-        <ResponsiveContainer width="100%" height={300} className="relative z-10">
+        <ResponsiveContainer
+          width="100%"
+          height={300}
+          className="relative z-10"
+        >
           <PieChart>
             <Pie
               data={topProducts}
@@ -313,13 +304,18 @@ export default function AdminDashboard() {
               cx="50%"
               cy="50%"
               outerRadius={120}
-              label={(props) => {
-                const { name, percent } = props as { name: string; percent?: number };
-                return `${name} ${percent !== undefined ? (percent * 100).toFixed(0) : 0}%`;
-              }}
+              label={({ name, percent }) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
+              }
             >
               {topProducts.map((_, index) => {
-                const zaraColors = ["#222222", "#555555", "#999999", "#ffffff", "#f5f5f5"];
+                const zaraColors = [
+                  "#222222",
+                  "#555555",
+                  "#999999",
+                  "#ffffff",
+                  "#f5f5f5",
+                ];
                 const color = zaraColors[index % zaraColors.length];
                 return <Cell key={index} fill={color} stroke="#000" />;
               })}
