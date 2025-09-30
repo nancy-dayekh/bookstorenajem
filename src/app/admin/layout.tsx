@@ -27,13 +27,22 @@ export default function AdminLayout({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [newOrdersCount, setNewOrdersCount] = useState(0);
-  const [logos, setLogos] = useState<string[]>([]);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [secondLogoUrl, setSecondLogoUrl] = useState<string | null>(null);
   const [colors, setColors] = useState<any[]>([]);
 
   const pathname = usePathname();
   const router = useRouter();
   const today = new Date().toISOString().split("T")[0];
 
+  async function fetchColors() {
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id", { ascending: true });
+    if (error) toast.error(error.message);
+    else setColors(data || []);
+  }
   useEffect(() => {
     const auth = localStorage.getItem("admin-auth");
     if (!auth) {
@@ -41,37 +50,44 @@ export default function AdminLayout({
       return;
     }
 
-    // Async function inside effect
-    const fetchAll = async () => {
+    // Fetch logos
+    const fetchLogos = async () => {
       try {
-        // Fetch logos (multi-image)
-        const { data: logosData, error: logosError } = await supabase
+        const { data, error } = await supabase
           .from("logos")
           .select("logo_url")
           .order("id", { ascending: false })
           .limit(2);
-        if (logosError) throw logosError;
-        setLogos(logosData?.map((l: any) => l.logo_url) || []);
+        if (error) throw error;
 
-        // Fetch colors
-        const { data: colorsData, error: colorsError } = await supabase
-          .from("colors")
-          .select("*")
-          .order("id", { ascending: true });
-        if (colorsError) throw colorsError;
-        setColors(colorsData || []);
+        setLogoUrl(data?.[0]?.logo_url || null);
+        setSecondLogoUrl(data?.[1]?.logo_url || null);
+      } catch (err: any) {
+        toast.error(err.message);
+      }
+    };
 
-        // Fetch new orders count
-        const { count, error: countError } = await supabase
+    // Fetch new orders count
+    const fetchNewOrdersCount = async () => {
+      try {
+        const { count, error } = await supabase
           .from("checkouts")
           .select("*", { count: "exact", head: true })
           .eq("status", "Pending")
           .gte("created_at", `${today}T00:00:00`)
           .lte("created_at", `${today}T23:59:59`);
-        if (!countError) setNewOrdersCount(count || 0);
+
+        if (!error) setNewOrdersCount(count || 0);
       } catch (err: any) {
         toast.error(err.message);
       }
+    };
+
+    // Fetch colors
+    const fetchAll = async () => {
+      await fetchLogos();
+      await fetchColors();
+      await fetchNewOrdersCount();
     };
 
     fetchAll();
@@ -89,9 +105,9 @@ export default function AdminLayout({
       )
       .subscribe();
 
-    // Cleanup (synchronous)
+    // Cleanup
     return () => {
-      supabase.removeChannel(subscription).catch(console.error);
+      supabase.removeChannel(subscription).catch((err) => console.error(err));
     };
   }, [router, today]);
 
@@ -134,14 +150,26 @@ export default function AdminLayout({
         style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
       >
         <div className="flex gap-2">
-          {logos.map((logo, idx) => (
-            <div
-              key={idx}
-              className={`relative w-[${idx === 0 ? 100 : 70}px] h-[60px]`}
-            >
-              <Image src={logo} alt={`Logo ${idx}`} fill style={{ objectFit: "contain" }} />
+          {logoUrl && (
+            <div className="relative w-[100px] h-[60px] sm:w-[100px] sm:h-[70px]">
+              <Image
+                src={logoUrl}
+                alt="Logo 1"
+                fill
+                style={{ objectFit: "contain" }}
+              />
             </div>
-          ))}
+          )}
+          {secondLogoUrl && (
+            <div className="relative w-[70px] h-[60px] sm:w-[80px] sm:h-[70px]">
+              <Image
+                src={secondLogoUrl}
+                alt="Logo 2"
+                fill
+                style={{ objectFit: "contain" }}
+              />
+            </div>
+          )}
         </div>
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -156,67 +184,76 @@ export default function AdminLayout({
       </header>
 
       {/* Sidebar */}
-      <aside
-        className={`fixed md:static top-0 left-0 h-full shadow-xl flex flex-col transition-transform duration-300 ease-in-out z-40 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0`}
-        style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
-      >
-        <div className="flex items-center justify-start gap-2 h-24 px-6">
-          {logos.map((logo, idx) => (
-            <div
-              key={idx}
-              className={`relative w-[${idx === 0 ? 200 : 100}px] h-[80px]`}
-            >
-              <Image src={logo} alt={`Logo ${idx}`} fill style={{ objectFit: "contain" }} />
-            </div>
-          ))}
-        </div>
+<aside
+  className={`fixed md:static top-0 left-0 h-full shadow-xl flex flex-col transition-transform duration-300 ease-in-out z-40 ${
+    isOpen ? "translate-x-0" : "-translate-x-full"
+  } md:translate-x-0`}
+  style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
+>
+  <div className="flex items-center justify-start gap-2 h-24 px-6">
+    {logoUrl && (
+      <div className="relative w-[200px] h-[80px] md:w-[220px] md:h-[100px] sm:w-[100px] sm:h-[100px]">
+        <Image
+          src={logoUrl}
+          alt="Logo 1"
+          fill
+          style={{ objectFit: "contain" }}
+        />
+      </div>
+    )}
+    {secondLogoUrl && (
+      <div className="relative w-[100px] h-[80px] md:w-[120px] md:h-[80px] sm:w-[100px] sm:h-[100px]">
+        <Image
+          src={secondLogoUrl}
+          alt="Logo 2"
+          fill
+          style={{ objectFit: "contain" }}
+        />
+      </div>
+    )}
+  </div>
 
-        <nav className="flex flex-col mt-6 px-4 space-y-3 font-sans text-base">
-          {links.map(({ href, label, Icon, hasCount }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center justify-between gap-4 py-3 px-3 rounded-lg transition-all duration-300`}
-                style={{
-                  backgroundColor: isActive
-                    ? mainColor.hover_color
-                    : "transparent",
-                  color: mainColor.text_color,
-                  borderLeft: isActive
-                    ? `4px solid ${mainColor.text_color}`
-                    : "4px solid transparent",
-                  fontWeight: 600,
-                  letterSpacing: "0.5px",
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    className="h-6 w-6"
-                    style={{ color: mainColor.text_color }}
-                  />
-                  <span>{label}</span>
-                </div>
-                {hasCount && newOrdersCount > 0 && (
-                  <span
-                    className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold animate-bounce shadow-md"
-                    style={{
-                      backgroundColor: mainColor.text_color,
-                      color: mainColor.hex,
-                    }}
-                  >
-                    {newOrdersCount}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+  {/* Scrollable nav */}
+  <nav className="flex-1 overflow-y-auto mt-6 px-4 space-y-3 font-sans text-base">
+    {links.map(({ href, label, Icon, hasCount }) => {
+      const isActive = pathname === href;
+      return (
+        <Link
+          key={href}
+          href={href}
+          onClick={() => setIsOpen(false)}
+          className={`flex items-center justify-between gap-4 py-3 px-3 rounded-lg transition-all duration-300`}
+          style={{
+            backgroundColor: isActive ? mainColor.hover_color : "transparent",
+            color: mainColor.text_color,
+            borderLeft: isActive
+              ? `4px solid ${mainColor.text_color}`
+              : "4px solid transparent",
+            fontWeight: 600,
+            letterSpacing: "0.5px",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <Icon className="h-6 w-6" style={{ color: mainColor.text_color }} />
+            <span>{label}</span>
+          </div>
+          {hasCount && newOrdersCount > 0 && (
+            <span
+              className="ml-2 rounded-full px-2 py-0.5 text-xs font-bold animate-bounce shadow-md"
+              style={{
+                backgroundColor: mainColor.text_color,
+                color: mainColor.hex,
+              }}
+            >
+              {newOrdersCount}
+            </span>
+          )}
+        </Link>
+      );
+    })}
+  </nav>
+</aside>
+
 
       {/* Main Content */}
       <main className="flex-1 mt-14 md:mt-0 p-6 md:p-8">{children}</main>
