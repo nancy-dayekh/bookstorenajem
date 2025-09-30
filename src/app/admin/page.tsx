@@ -22,8 +22,7 @@ type Order = {
   total: number | string;
   created_at: string;
 };
-
-type CheckoutItem = { quantity: number; add_products?: { name: string }[] };
+type CheckoutItem = { quantity: number; add_products?: { name: string } };
 type TopProduct = { name: string; quantity: number };
 type MonthlyData = { month: string; revenue: number };
 
@@ -47,21 +46,19 @@ export default function AdminDashboard() {
   const [profileOpen, setProfileOpen] = useState<boolean>(false);
   const [colors, setColors] = useState<Color[]>([]);
 
-  // Fetch colors from DB
   async function fetchColors() {
     const { data, error } = await supabase
       .from("colors")
       .select("*")
       .order("id");
-
+    setColors((data as Color[]) || []);
     if (error) toast.error(error.message);
-    else setColors((data as Color[]) || []);
+    else setColors(data || []);
   }
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        // Fetch admin name
         const { data: adminData, error: adminError } = await supabase
           .from("admins")
           .select("name")
@@ -69,12 +66,10 @@ export default function AdminDashboard() {
           .single();
         if (!adminError && adminData) setUserName(adminData.name || "Admin");
 
-        // Fetch checkouts
         const { data: checkouts } = await supabase
           .from("checkouts")
           .select("id,total,created_at");
         const typedCheckouts = (checkouts || []) as Order[];
-
         setOrdersCount(typedCheckouts.length);
         setTotalRevenue(
           typedCheckouts.reduce((sum, c) => sum + Number(c.total), 0)
@@ -88,22 +83,18 @@ export default function AdminDashboard() {
 
         calculateMonthlyRevenue(typedCheckouts, selectedYear);
 
-        // Fetch checkout items
         const { data: items } = await supabase
           .from("checkout_items")
           .select("quantity, add_products(name)");
-
         const typedItems: CheckoutItem[] = (items || []).map((item) => ({
           quantity: item.quantity,
           add_products: item.add_products || [],
         }));
-
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
-          const name = item.add_products?.[0]?.name || "Unknown";
+          const name = item.add_products?.name || "Unknown";
           productSales[name] = (productSales[name] || 0) + item.quantity;
         });
-
         setTopProducts(
           Object.entries(productSales)
             .map(([name, quantity]) => ({ name, quantity }))
@@ -111,7 +102,6 @@ export default function AdminDashboard() {
             .slice(0, 5)
         );
 
-        // Fetch all products count
         const { data: allProducts } = await supabase
           .from("add_products")
           .select("id");
@@ -294,6 +284,7 @@ export default function AdminDashboard() {
           color: mainColor.text_color,
         }}
       >
+        {/* دائرة Hover شفافة */}
         <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
 
         <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10">
@@ -313,8 +304,8 @@ export default function AdminDashboard() {
               cx="50%"
               cy="50%"
               outerRadius={120}
-              label={(entry: { name: string; percent?: number }) =>
-                `${entry.name} ${((entry.percent ?? 0) * 100).toFixed(0)}%`
+              label={({ name, percent }) =>
+                `${name} ${(percent * 100).toFixed(0)}%`
               }
             >
               {topProducts.map((_, index) => {
