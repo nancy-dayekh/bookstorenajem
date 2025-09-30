@@ -5,6 +5,7 @@ import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
+// Logo type
 interface Logo {
   id: number;
   logo_url: string;
@@ -46,8 +47,8 @@ export default function LogoManager() {
       toast.success("Logo Added!");
       setFile(null);
       fetchLogos();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   }
 
@@ -66,8 +67,8 @@ export default function LogoManager() {
 
       toast.success("Logo Deleted!");
       fetchLogos();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   }
 
@@ -109,8 +110,8 @@ export default function LogoManager() {
       setEditFile(null);
       setEditPreview(null);
       fetchLogos();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
     }
   }
 
