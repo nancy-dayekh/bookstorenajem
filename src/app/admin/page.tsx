@@ -22,6 +22,12 @@ type CheckoutItem = { quantity: number; add_products?: { name: string } };
 type TopProduct = { name: string; quantity: number };
 type MonthlyData = { month: string; revenue: number };
 
+type Color = {
+  hex: string;
+  text_color: string;
+  hover_color?: string;
+};
+
 export default function AdminDashboard() {
   const [ordersCount, setOrdersCount] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
@@ -32,10 +38,10 @@ export default function AdminDashboard() {
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
   const [userName, setUserName] = useState<string>("Admin");
   const [profileOpen, setProfileOpen] = useState<boolean>(false);
-  const [colors, setColors] = useState<any[]>([]);
+  const [colors, setColors] = useState<Color[]>([]);
 
   async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
+    const { data, error } = await supabase.from<Color>("colors").select("*").order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
@@ -143,7 +149,11 @@ export default function AdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[{ title: "Total Orders", value: ordersCount }, { title: "Total Revenue", value: `$${totalRevenue.toFixed(2)}` }, { title: "Total Products", value: totalProducts }].map((card, idx) => {
+        {[
+          { title: "Total Orders", value: ordersCount },
+          { title: "Total Revenue", value: `$${totalRevenue.toFixed(2)}` },
+          { title: "Total Products", value: totalProducts },
+        ].map((card, idx) => {
           const cardColor = colors[idx % colors.length];
           return (
             <div
@@ -193,58 +203,49 @@ export default function AdminDashboard() {
         </ResponsiveContainer>
       </div>
 
-{/* Top Products Pie Chart */}
-<div
-  className="rounded-3xl shadow-lg p-6 mt-6 transition-all duration-300 relative overflow-hidden hover:shadow-2xl"
-  style={{
-    backgroundColor: mainColor.hex, // لون الكارد الأساسي من الـDB
-    color: mainColor.text_color,
-  }}
->
-  {/* دائرة Hover شفافة */}
-  <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
-
-  <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10">
-    🏆 Top Selling Products
-  </h2>
-
-  <ResponsiveContainer width="100%" height={300} className="relative z-10">
-    <PieChart>
-      <Pie
-        data={topProducts}
-        dataKey="quantity"
-        nameKey="name"
-        cx="50%"
-        cy="50%"
-        outerRadius={120}
-        label={({ name, percent }) =>
-          `${name} ${(percent * 100).toFixed(0)}%`
-        }
-      >
-        {topProducts.map((_, index) => {
-          // ألوان شبيهة بـZara (مزيج من الأسود، الرمادي، الأبيض، البيج)
-          const zaraColors = ["#222222", "#555555", "#999999", "#ffffff", "#f5f5f5"];
-          const color = zaraColors[index % zaraColors.length];
-          return <Cell key={index} fill={color} stroke="#000" />;
-        })}
-      </Pie>
-      <Legend wrapperStyle={{ color: mainColor.text_color }} />
-      <Tooltip
-        contentStyle={{
+      {/* Top Products Pie Chart */}
+      <div
+        className="rounded-3xl shadow-lg p-6 mt-6 transition-all duration-300 relative overflow-hidden hover:shadow-2xl"
+        style={{
           backgroundColor: mainColor.hex,
           color: mainColor.text_color,
-          borderRadius: "12px",
         }}
-        itemStyle={{ color: mainColor.text_color }}
-        labelStyle={{ color: mainColor.text_color }}
-      />
-    </PieChart>
-  </ResponsiveContainer>
-</div>
+      >
+        {/* دائرة Hover شفافة */}
+        <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
 
+        <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10">🏆 Top Selling Products</h2>
 
-
-
+        <ResponsiveContainer width="100%" height={300} className="relative z-10">
+          <PieChart>
+            <Pie
+              data={topProducts}
+              dataKey="quantity"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={120}
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            >
+              {topProducts.map((_, index) => {
+                const zaraColors = ["#222222", "#555555", "#999999", "#ffffff", "#f5f5f5"];
+                const color = zaraColors[index % zaraColors.length];
+                return <Cell key={index} fill={color} stroke="#000" />;
+              })}
+            </Pie>
+            <Legend wrapperStyle={{ color: mainColor.text_color }} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: mainColor.hex,
+                color: mainColor.text_color,
+                borderRadius: "12px",
+              }}
+              itemStyle={{ color: mainColor.text_color }}
+              labelStyle={{ color: mainColor.text_color }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }
