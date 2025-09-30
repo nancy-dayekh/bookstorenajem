@@ -86,14 +86,7 @@ export default function AdminDashboard() {
         const { data: items } = await supabase
           .from("checkout_items")
           .select("quantity, add_products(name)");
-
-        // Map the Supabase response to match CheckoutItem type
-        const typedItems: CheckoutItem[] = (items || []).map((item) => ({
-          quantity: item.quantity,
-          // Take the first product if exists, otherwise fallback to "Unknown"
-          add_products: item.add_products?.[0] || { name: "Unknown" },
-        }));
-
+        const typedItems = (items || []) as unknown as CheckoutItem[];
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
           const name = item.add_products?.name || "Unknown";
