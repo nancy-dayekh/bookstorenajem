@@ -5,7 +5,9 @@ import { supabase } from "../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter, useParams } from "next/navigation";
 
+// Define ColorForm type
 interface ColorForm {
+  id?: number;
   name: string;
   hex: string;
   text_color: string;
@@ -17,8 +19,8 @@ interface ColorForm {
 
 export default function EditColorPage() {
   const router = useRouter();
-  const params = useParams(); // Get dynamic route params
-  const colorId = params?.id;
+  const params = useParams(); // dynamic route params
+  const colorId = Number(params?.id);
 
   const [form, setForm] = useState<ColorForm>({
     name: "",
@@ -38,10 +40,10 @@ export default function EditColorPage() {
 
     async function fetchColor() {
       const { data, error } = await supabase
-        .from("colors") // table name as string
+        .from("colors")
         .select("*")
         .eq("id", colorId)
-        .single<ColorForm>(); // type returned data
+        .single<ColorForm>();
 
       if (error) toast.error(error.message);
       else if (data) setForm(data);
@@ -52,23 +54,22 @@ export default function EditColorPage() {
 
   // Update color
   async function handleUpdate() {
-    if (!form.name || !form.hex)
-      return toast.error("Name and Hex color required!");
-    if (!colorId) return toast.error("Invalid color ID");
+    if (!form.name || !form.hex) return toast.error("Name and Hex color required!");
+    if (!colorId || isNaN(colorId)) return toast.error("Invalid color ID");
 
     try {
       setLoading(true);
+      const { id, ...updateData } = form; // omit id to avoid error
       const { error } = await supabase
-        .from("colors") // table name as string
-        .update(form) // your payload
-        .eq("id", colorId); // match the row
+        .from("colors")
+        .update(updateData)
+        .eq("id", colorId);
 
       if (error) throw error;
       toast.success("Color updated successfully!");
       router.push("/admin/colors");
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("Unexpected error occurred");
+    } catch (err: any) {
+      toast.error(err.message || "Unexpected error occurred");
     } finally {
       setLoading(false);
     }

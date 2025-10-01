@@ -6,7 +6,6 @@ import toast, { Toaster } from 'react-hot-toast';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 
-// Local ColorForm type
 interface ColorForm {
   id?: number;
   button_hex: string;
@@ -21,7 +20,7 @@ interface Category {
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [colors, setColors] = useState<ColorForm[]>([]);
+  const [colors, setColors] = useState<ColorForm[] | null>(null); // null until loaded
 
   async function fetchCategories() {
     const { data, error } = await supabase.from('categories').select('*').order('id');
@@ -32,7 +31,7 @@ export default function CategoriesPage() {
   async function fetchColors() {
     const { data, error } = await supabase.from('colors').select('*').order('id');
     if (error) toast.error(error.message);
-    else if (data) setColors(data as ColorForm[]);
+    else setColors(data || []);
   }
 
   async function deleteCategory(id: number) {
@@ -48,6 +47,11 @@ export default function CategoriesPage() {
     fetchCategories();
     fetchColors();
   }, []);
+
+  if (!colors) {
+    // while colors are loading, show a placeholder or spinner
+    return <div className="text-center py-20">Loading...</div>;
+  }
 
   const getCategoryColor = (index: number) =>
     colors.length
