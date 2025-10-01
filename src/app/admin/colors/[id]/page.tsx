@@ -51,12 +51,16 @@ export default function EditColorPage({ params }: { params: { id: string } }) {
 
     try {
       setLoading(true);
-      const { error } = await supabase.from("colors").update(form).eq("id", colorId);
+      const { error } = await supabase
+        .from("colors")
+        .update(form)
+        .eq("id", colorId);
       if (error) throw error;
       toast.success("Color updated successfully!");
       router.push("/admin/colors");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -111,13 +115,17 @@ export default function EditColorPage({ params }: { params: { id: string } }) {
           <input
             type="color"
             value={form.button_text_color}
-            onChange={(e) => setForm({ ...form, button_text_color: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, button_text_color: e.target.value })
+            }
             className="w-full h-10 rounded-lg border"
           />
           <input
             type="color"
             value={form.button_hover_color}
-            onChange={(e) => setForm({ ...form, button_hover_color: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, button_hover_color: e.target.value })
+            }
             className="w-full h-10 rounded-lg border"
           />
         </div>
