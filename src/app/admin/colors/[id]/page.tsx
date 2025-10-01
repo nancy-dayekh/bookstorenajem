@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -16,7 +15,14 @@ interface ColorForm {
   button_hover_color: string;
 }
 
-export default function EditColorPage({ params }: { params: { id: string } }) {
+// Define props type for page
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function EditColorPage({ params }: PageProps) {
   const router = useRouter();
   const colorId = params.id;
 
@@ -29,35 +35,36 @@ export default function EditColorPage({ params }: { params: { id: string } }) {
     button_text_color: "#ffffff",
     button_hover_color: "#4338ca",
   });
+
   const [loading, setLoading] = useState(false);
 
-  // Fetch color details on page load
   useEffect(() => {
     async function fetchColor() {
       const { data, error } = await supabase
-        .from("colors")
+        .from<ColorForm>("colors")
         .select("*")
         .eq("id", colorId)
         .single();
+
       if (error) toast.error(error.message);
-      else if (data) setForm({ ...data });
+      else if (data) setForm(data);
     }
+
     fetchColor();
   }, [colorId]);
 
-  // Update color
   async function handleUpdate() {
-    if (!form.name || !form.hex)
-      return toast.error("Name and Hex color required!");
+    if (!form.name || !form.hex) return toast.error("Name and Hex color required!");
 
     try {
       setLoading(true);
-      const { error } = await supabase.from("colors").update(form).eq("id", colorId);
+      const { error } = await supabase.from<ColorForm>("colors").update(form).eq("id", colorId);
       if (error) throw error;
       toast.success("Color updated successfully!");
       router.push("/admin/colors");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -67,7 +74,6 @@ export default function EditColorPage({ params }: { params: { id: string } }) {
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
       <Toaster position="top-right" />
 
-      {/* Header */}
       <h1
         className="text-2xl sm:text-3xl font-bold mb-6 text-center truncate"
         style={{ color: form.text_color }}
@@ -76,7 +82,6 @@ export default function EditColorPage({ params }: { params: { id: string } }) {
       </h1>
 
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6">
-        {/* Responsive Form Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <input
             type="text"
@@ -123,23 +128,17 @@ export default function EditColorPage({ params }: { params: { id: string } }) {
           />
         </div>
 
-        {/* Save Button */}
         <div className="flex justify-center sm:justify-end mt-4">
           <button
             onClick={handleUpdate}
             disabled={loading}
-            style={{
-              backgroundColor: form.button_hex,
-              color: form.button_text_color,
-            }}
+            style={{ backgroundColor: form.button_hex, color: form.button_text_color }}
             className="px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105 w-full sm:w-auto"
             onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                form.button_hover_color)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = form.button_hover_color)
             }
             onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
-                form.button_hex)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = form.button_hex)
             }
           >
             {loading ? "Saving..." : "Update Color"}
