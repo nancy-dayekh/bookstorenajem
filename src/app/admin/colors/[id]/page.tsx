@@ -38,10 +38,10 @@ export default function EditColorPage() {
 
     async function fetchColor() {
       const { data, error } = await supabase
-        .from<ColorForm, ColorForm>("colors") // ✅ Correct 2 type arguments
+        .from("colors") // table name as string
         .select("*")
         .eq("id", colorId)
-        .single();
+        .single<ColorForm>(); // type returned data
 
       if (error) toast.error(error.message);
       else if (data) setForm(data);
@@ -52,18 +52,18 @@ export default function EditColorPage() {
 
   // Update color
   async function handleUpdate() {
-    if (!form.name || !form.hex) return toast.error("Name and Hex color required!");
+    if (!form.name || !form.hex)
+      return toast.error("Name and Hex color required!");
     if (!colorId) return toast.error("Invalid color ID");
 
     try {
       setLoading(true);
       const { error } = await supabase
-        .from<ColorForm, ColorForm>("colors") // ✅ Correct 2 type arguments
-        .update(form)
-        .eq("id", colorId);
+        .from("colors") // table name as string
+        .update(form) // your payload
+        .eq("id", colorId); // match the row
 
       if (error) throw error;
-
       toast.success("Color updated successfully!");
       router.push("/admin/colors");
     } catch (err: unknown) {
@@ -123,13 +123,17 @@ export default function EditColorPage() {
           <input
             type="color"
             value={form.button_text_color}
-            onChange={(e) => setForm({ ...form, button_text_color: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, button_text_color: e.target.value })
+            }
             className="w-full h-10 rounded-lg border"
           />
           <input
             type="color"
             value={form.button_hover_color}
-            onChange={(e) => setForm({ ...form, button_hover_color: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, button_hover_color: e.target.value })
+            }
             className="w-full h-10 rounded-lg border"
           />
         </div>
@@ -139,13 +143,18 @@ export default function EditColorPage() {
           <button
             onClick={handleUpdate}
             disabled={loading}
-            style={{ backgroundColor: form.button_hex, color: form.button_text_color }}
+            style={{
+              backgroundColor: form.button_hex,
+              color: form.button_text_color,
+            }}
             className="px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105 w-full sm:w-auto"
             onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = form.button_hover_color)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                form.button_hover_color)
             }
             onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = form.button_hex)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                form.button_hex)
             }
           >
             {loading ? "Saving..." : "Update Color"}
