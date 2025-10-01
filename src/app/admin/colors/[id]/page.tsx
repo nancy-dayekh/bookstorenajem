@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface ColorForm {
   name: string;
@@ -15,10 +16,9 @@ interface ColorForm {
   button_hover_color: string;
 }
 
-export default function EditColorPage() {
+export default function EditColorPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const params = useParams(); // ✅ get the dynamic route param
-  const colorId = params?.id;
+  const colorId = params.id;
 
   const [form, setForm] = useState<ColorForm>({
     name: "",
@@ -29,39 +29,35 @@ export default function EditColorPage() {
     button_text_color: "#ffffff",
     button_hover_color: "#4338ca",
   });
-
   const [loading, setLoading] = useState(false);
 
+  // Fetch color details on page load
   useEffect(() => {
-    if (!colorId) return;
-
     async function fetchColor() {
       const { data, error } = await supabase
-        .from<ColorForm>("colors")
+        .from("colors")
         .select("*")
         .eq("id", colorId)
         .single();
-
       if (error) toast.error(error.message);
-      else if (data) setForm(data);
+      else if (data) setForm({ ...data });
     }
-
     fetchColor();
   }, [colorId]);
 
+  // Update color
   async function handleUpdate() {
-    if (!form.name || !form.hex) return toast.error("Name and Hex color required!");
-    if (!colorId) return toast.error("Invalid color ID");
+    if (!form.name || !form.hex)
+      return toast.error("Name and Hex color required!");
 
     try {
       setLoading(true);
-      const { error } = await supabase.from<ColorForm>("colors").update(form).eq("id", colorId);
+      const { error } = await supabase.from("colors").update(form).eq("id", colorId);
       if (error) throw error;
       toast.success("Color updated successfully!");
       router.push("/admin/colors");
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("Unexpected error occurred");
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -70,6 +66,8 @@ export default function EditColorPage() {
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
       <Toaster position="top-right" />
+
+      {/* Header */}
       <h1
         className="text-2xl sm:text-3xl font-bold mb-6 text-center truncate"
         style={{ color: form.text_color }}
@@ -78,6 +76,7 @@ export default function EditColorPage() {
       </h1>
 
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6">
+        {/* Responsive Form Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <input
             type="text"
@@ -124,17 +123,23 @@ export default function EditColorPage() {
           />
         </div>
 
+        {/* Save Button */}
         <div className="flex justify-center sm:justify-end mt-4">
           <button
             onClick={handleUpdate}
             disabled={loading}
-            style={{ backgroundColor: form.button_hex, color: form.button_text_color }}
+            style={{
+              backgroundColor: form.button_hex,
+              color: form.button_text_color,
+            }}
             className="px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105 w-full sm:w-auto"
             onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = form.button_hover_color)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                form.button_hover_color)
             }
             onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = form.button_hex)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                form.button_hex)
             }
           >
             {loading ? "Saving..." : "Update Color"}
