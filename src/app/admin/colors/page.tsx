@@ -1,57 +1,22 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function ColorsPage() {
   const [colors, setColors] = useState<any[]>([]);
-  const [form, setForm] = useState({
-    name: "",
-    hex: "#ffffff",
-    text_color: "#000000",
-    hover_color: "#f0f0f0",
-  });
-  const [editId, setEditId] = useState<number | null>(null);
+  const router = useRouter();
 
-  // Fetch colors
+  // Fetch colors from DB
   async function fetchColors() {
     const { data, error } = await supabase
       .from("colors")
       .select("*")
       .order("id", { ascending: true });
-
     if (error) toast.error(error.message);
     else setColors(data || []);
-  }
-
-  // Add / Edit color
-  async function handleSave() {
-    try {
-      if (!form.name || !form.hex) {
-        return toast.error("Name and Hex color are required!");
-      }
-
-      if (editId) {
-        const { error } = await supabase
-          .from("colors")
-          .update(form)
-          .eq("id", editId);
-        if (error) throw error;
-        toast.success("Color updated!");
-      } else {
-        const { error } = await supabase.from("colors").insert([form]);
-        if (error) throw error;
-        toast.success("Color added!");
-      }
-
-      setForm({ name: "", hex: "#ffffff", text_color: "#000000", hover_color: "#f0f0f0" });
-      setEditId(null);
-      fetchColors();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
   }
 
   // Delete color
@@ -65,128 +30,128 @@ export default function ColorsPage() {
     }
   }
 
-  // Start editing
-  function startEdit(color: any) {
-    setEditId(color.id);
-    setForm({
-      name: color.name,
-      hex: color.hex,
-      text_color: color.text_color || "#000000",
-      hover_color: color.hover_color || "#f0f0f0",
-    });
-  }
-
   useEffect(() => {
     fetchColors();
   }, []);
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6">
       <Toaster position="top-right" />
 
-      <h1 className="text-3xl font-bold mb-6 text-center text-pink-600">Colors Management</h1>
+      {/* Header */}
+      <h1
+        className="text-3xl font-bold mb-6 text-center"
+        style={{ color: colors[0]?.text_color || "#000000" }}
+      >
+        Colors Display
+      </h1>
 
-      {/* Add/Edit Form */}
-      <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
-        <h2 className="text-xl font-semibold mb-3 text-gray-700">
-          {editId ? "Edit Color" : "Add New Color"}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <input
-            type="text"
-            placeholder="Color Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none"
-          />
-          <input
-            type="color"
-            placeholder="Hex Color"
-            value={form.hex}
-            onChange={(e) => setForm({ ...form, hex: e.target.value })}
-            className="border rounded-lg w-full h-10 p-0"
-          />
-          <input
-            type="color"
-            placeholder="Text Color"
-            value={form.text_color}
-            onChange={(e) => setForm({ ...form, text_color: e.target.value })}
-            className="border rounded-lg w-full h-10 p-0"
-          />
-          <input
-            type="color"
-            placeholder="Hover Color"
-            value={form.hover_color}
-            onChange={(e) => setForm({ ...form, hover_color: e.target.value })}
-            className="border rounded-lg w-full h-10 p-0"
-          />
-        </div>
-        <div className="flex gap-3">
+      {/* Add Color Button */}
+      <div className="mb-4 flex justify-end">
+        {colors[0] && (
           <button
-            onClick={handleSave}
-            className="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-pink-600 transition-transform hover:scale-105"
+            onClick={() => router.push("/admin/colors/addcolors")}
+            style={{
+              backgroundColor: colors[0]?.button_hex || "#4f46e5",
+              color: colors[0]?.button_text_color || "#ffffff",
+            }}
+            className="px-5 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                colors[0]?.button_hover_color || "#4338ca")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                colors[0]?.button_hex || "#4f46e5")
+            }
           >
-            {editId ? "Save Changes" : "Add Color"}
+            Add Color
           </button>
-          {editId && (
-            <button
-              onClick={() => {
-                setEditId(null);
-                setForm({ name: "", hex: "#ffffff", text_color: "#000000", hover_color: "#f0f0f0" });
-              }}
-              className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Colors Table */}
+      {/* Responsive Table */}
       <div className="overflow-x-auto rounded-xl shadow-md bg-white">
-        <table className="min-w-full text-sm sm:text-base">
+        <table className="min-w-full text-sm sm:text-base border-collapse">
           <thead className="bg-pink-100">
             <tr>
-              <th className="p-3 text-left text-gray-700">ID</th>
-              <th className="p-3 text-left text-gray-700">Name</th>
-              <th className="p-3 text-left text-gray-700">Color</th>
-              <th className="p-3 text-left text-gray-700">Text Color</th>
-              <th className="p-3 text-left text-gray-700">Hover Color</th>
-              <th className="p-3 text-left text-gray-700">Actions</th>
+              <th className="p-2 sm:p-3 text-left">ID</th>
+              <th className="p-2 sm:p-3 text-left">Name</th>
+              <th className="p-2 sm:p-3 text-left">Color</th>
+              <th className="p-2 sm:p-3 text-left">Text Color</th>
+              <th className="p-2 sm:p-3 text-left">Hover Color</th>
+              <th className="p-2 sm:p-3 text-left">Button Hex</th>
+              <th className="p-2 sm:p-3 text-left">Button Text</th>
+              <th className="p-2 sm:p-3 text-left">Button Hover</th>
+              <th className="p-2 sm:p-3 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {colors.map((color) => (
-              <tr
-                key={color.id}
-                style={{ backgroundColor: color.hex, color: color.text_color }}
-                className="border-b hover:brightness-90 transition"
-              >
-                <td className="p-3">{color.id}</td>
-                <td className="p-3">{color.name}</td>
-                <td className="p-3">{color.hex}</td>
-                <td className="p-3">{color.text_color}</td>
-                <td className="p-3">{color.hover_color}</td>
-                <td className="p-3 flex gap-2">
-                  <button
-                    onClick={() => startEdit(color)}
-                    className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(color.id)}
-                    className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {colors.length === 0 && (
+            {colors.length > 0 ? (
+              colors.map((color) => (
+                <tr
+                  key={color.id}
+                  className="border-b transition-all hover:brightness-90"
+                  style={{
+                    backgroundColor: color.hex,
+                    color: color.text_color,
+                  }}
+                >
+                  <td className="p-2 sm:p-3">{color.id}</td>
+                  <td className="p-2 sm:p-3">{color.name}</td>
+                  <td className="p-2 sm:p-3">{color.hex}</td>
+                  <td className="p-2 sm:p-3">{color.text_color}</td>
+                  <td className="p-2 sm:p-3">{color.hover_color}</td>
+                  <td className="p-2 sm:p-3">{color.button_hex}</td>
+                  <td className="p-2 sm:p-3">{color.button_text_color}</td>
+                  <td className="p-2 sm:p-3">{color.button_hover_color}</td>
+                  <td className="p-2 sm:p-3 flex flex-wrap gap-2 justify-center sm:justify-start">
+                    {/* Edit Button */}
+                    <button
+                      onClick={() => router.push(`/admin/colors/${color.id}`)}
+                      style={{
+                        backgroundColor: color.button_hex,
+                        color: color.button_text_color,
+                      }}
+                      className="px-3 py-1 rounded-lg font-semibold transition-transform hover:scale-105"
+                      onMouseEnter={(e) =>
+                        ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                          color.button_hover_color)
+                      }
+                      onMouseLeave={(e) =>
+                        ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                          color.button_hex)
+                      }
+                    >
+                      Edit
+                    </button>
+
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => handleDelete(color.id)}
+                      style={{
+                        backgroundColor: color.button_hex,
+                        color: color.button_text_color,
+                      }}
+                      className="px-3 py-1 rounded-lg font-semibold transition-transform hover:scale-105"
+                      onMouseEnter={(e) =>
+                        ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                          color.button_hover_color)
+                      }
+                      onMouseLeave={(e) =>
+                        ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                          color.button_hex)
+                      }
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
-                <td colSpan={6} className="p-3 text-center text-gray-500">
-                  No colors yet.
+                <td colSpan={9} className="p-3 text-center text-gray-500">
+                  No colors available.
                 </td>
               </tr>
             )}

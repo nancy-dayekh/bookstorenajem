@@ -53,7 +53,6 @@ export default function AdminDashboard() {
       .order("id");
     setColors((data as Color[]) || []);
     if (error) toast.error(error.message);
-    else setColors(data || []);
   }
 
   useEffect(() => {
@@ -138,9 +137,9 @@ export default function AdminDashboard() {
       <Toaster />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+      <div className="flex justify-between items-center mb-8 px-2 sm:px-0">
         <h1
-          className="text-3xl sm:text-4xl font-bold px-4 py-2 rounded-xl text-center sm:text-left w-full sm:w-auto"
+          className="text-xl sm:text-3xl md:text-4xl font-bold py-2 rounded-xl flex-shrink-0 truncate"
           style={{
             backgroundColor: mainColor.hex,
             color: mainColor.text_color,
@@ -150,9 +149,7 @@ export default function AdminDashboard() {
         </h1>
 
         {/* Profile Icon */}
-        <div className="relative ml-auto">
-          {" "}
-          {/* Use ml-auto to push it to the right */}
+        <div className="relative">
           <button
             onClick={() => setProfileOpen(!profileOpen)}
             className="p-3 rounded-full shadow hover:shadow-md transition"
@@ -200,18 +197,16 @@ export default function AdminDashboard() {
           return (
             <div
               key={card.title}
-              className="rounded-3xl shadow-lg p-4 sm:p-8 flex flex-col justify-center items-center hover:shadow-2xl transition transform hover:-translate-y-1"
+              className="rounded-3xl shadow-lg p-6 sm:p-8 flex flex-col justify-center items-center hover:shadow-2xl transition transform hover:-translate-y-1"
               style={{
                 backgroundColor: cardColor.hex,
                 color: cardColor.text_color,
               }}
             >
-              <p className="font-semibold uppercase tracking-wide text-center">
+              <p className="font-semibold uppercase tracking-wide">
                 {card.title}
               </p>
-              <p className="mt-3 text-3xl sm:text-5xl font-bold">
-                {card.value}
-              </p>
+              <p className="mt-3 text-3xl sm:text-5xl font-bold">{card.value}</p>
             </div>
           );
         })}
@@ -220,7 +215,7 @@ export default function AdminDashboard() {
       {/* Year Filter */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
         <h2
-          className="text-xl sm:text-2xl font-semibold px-4 py-2 rounded-xl text-center sm:text-left w-full sm:w-auto"
+          className="text-lg sm:text-xl font-semibold px-4 py-2 rounded-xl"
           style={{
             backgroundColor: mainColor.hex,
             color: mainColor.text_color,
@@ -229,7 +224,7 @@ export default function AdminDashboard() {
           Revenue by Month ({selectedYear})
         </h2>
         <select
-          className="border rounded-xl p-2 shadow-sm focus:outline-none focus:ring-2 transition w-full sm:w-auto"
+          className="border rounded-xl p-2 shadow-sm focus:outline-none focus:ring-2 transition"
           value={selectedYear}
           onChange={(e) => setSelectedYear(Number(e.target.value))}
           style={{
@@ -245,64 +240,30 @@ export default function AdminDashboard() {
 
       {/* Revenue BarChart */}
       <div className="rounded-3xl shadow-lg p-4 sm:p-6 hover:shadow-2xl transition mt-6">
-        <h2 className="text-lg font-semibold mb-4 text-center sm:text-left">
-          Revenue by Month
-        </h2>
-        <ResponsiveContainer
-          width="100%"
-          height={window.innerWidth < 640 ? 200 : 300}
-        >
+        <h2 className="text-lg font-semibold mb-4">Revenue by Month</h2>
+        <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyData}>
-            <CartesianGrid
-              stroke={mainColor.text_color}
-              strokeDasharray="4 4"
-            />
-            <XAxis
-              dataKey="month"
-              stroke={mainColor.text_color}
-              tick={{ fill: mainColor.text_color }}
-            />
-            <YAxis
-              stroke={mainColor.text_color}
-              tick={{ fill: mainColor.text_color }}
-            />
+            <CartesianGrid stroke={mainColor.text_color} strokeDasharray="4 4" />
+            <XAxis dataKey="month" stroke={mainColor.text_color} tick={{ fill: mainColor.text_color }} />
+            <YAxis stroke={mainColor.text_color} tick={{ fill: mainColor.text_color }} />
             <Tooltip
-              contentStyle={{
-                backgroundColor: mainColor.hex,
-                color: mainColor.text_color,
-                borderRadius: "12px",
-              }}
+              contentStyle={{ backgroundColor: mainColor.hex, color: mainColor.text_color, borderRadius: "12px" }}
               itemStyle={{ color: mainColor.text_color }}
               labelStyle={{ color: mainColor.text_color }}
             />
-            <Bar
-              dataKey="revenue"
-              fill={mainColor.hover_color || "#ec4899"}
-              radius={[12, 12, 0, 0]}
-            />
+            <Bar dataKey="revenue" fill={mainColor.hover_color || "#ec4899"} radius={[12, 12, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Top Products Pie Chart */}
       <div
-        className="rounded-3xl shadow-lg p-4 sm:p-6 mt-6 transition-all duration-300 relative overflow-hidden hover:shadow-2xl"
-        style={{
-          backgroundColor: mainColor.hex,
-          color: mainColor.text_color,
-        }}
+        className="rounded-3xl shadow-lg p-6 mt-6 transition-all duration-300 relative overflow-hidden hover:shadow-2xl"
+        style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
       >
         <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
-
-        <h2 className="text-xl sm:text-2xl font-semibold mb-4 relative z-10 text-center sm:text-left">
-          🏆 Top Selling Products
-        </h2>
-
-        <ResponsiveContainer
-          width="100%"
-          height={window.innerWidth < 640 ? 200 : 300}
-          className="relative z-10"
-        >
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 relative z-10">🏆 Top Selling Products</h2>
+        <ResponsiveContainer width="100%" height={300} className="relative z-10">
           <PieChart>
             <Pie
               data={topProducts}
@@ -310,30 +271,17 @@ export default function AdminDashboard() {
               nameKey="name"
               cx="50%"
               cy="50%"
-              outerRadius={window.innerWidth < 640 ? 80 : 120}
-              label={({ name, percent }) =>
-                `${name} ${(Number(percent) * 100).toFixed(0)}%`
-              }
+              outerRadius={120}
+              label={({ name, percent }) => `${name} ${(Number(percent) * 100).toFixed(0)}%`}
             >
               {topProducts.map((_, index) => {
-                const zaraColors = [
-                  "#222222",
-                  "#555555",
-                  "#999999",
-                  "#ffffff",
-                  "#f5f5f5",
-                ];
-                const color = zaraColors[index % zaraColors.length];
-                return <Cell key={index} fill={color} stroke="#000" />;
+                const colorsPalette = ["#222222", "#555555", "#999999", "#ffffff", "#f5f5f5"];
+                return <Cell key={index} fill={colorsPalette[index % colorsPalette.length]} stroke="#000" />;
               })}
             </Pie>
             <Legend wrapperStyle={{ color: mainColor.text_color }} />
             <Tooltip
-              contentStyle={{
-                backgroundColor: mainColor.hex,
-                color: mainColor.text_color,
-                borderRadius: "12px",
-              }}
+              contentStyle={{ backgroundColor: mainColor.hex, color: mainColor.text_color, borderRadius: "12px" }}
               itemStyle={{ color: mainColor.text_color }}
               labelStyle={{ color: mainColor.text_color }}
             />
