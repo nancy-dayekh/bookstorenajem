@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 interface ColorForm {
   name: string;
@@ -15,16 +15,10 @@ interface ColorForm {
   button_hover_color: string;
 }
 
-// Define props type for page
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function EditColorPage({ params }: PageProps) {
+export default function EditColorPage() {
   const router = useRouter();
-  const colorId = params.id;
+  const params = useParams(); // ✅ get the dynamic route param
+  const colorId = params?.id;
 
   const [form, setForm] = useState<ColorForm>({
     name: "",
@@ -39,6 +33,8 @@ export default function EditColorPage({ params }: PageProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!colorId) return;
+
     async function fetchColor() {
       const { data, error } = await supabase
         .from<ColorForm>("colors")
@@ -55,6 +51,7 @@ export default function EditColorPage({ params }: PageProps) {
 
   async function handleUpdate() {
     if (!form.name || !form.hex) return toast.error("Name and Hex color required!");
+    if (!colorId) return toast.error("Invalid color ID");
 
     try {
       setLoading(true);
@@ -73,7 +70,6 @@ export default function EditColorPage({ params }: PageProps) {
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
       <Toaster position="top-right" />
-
       <h1
         className="text-2xl sm:text-3xl font-bold mb-6 text-center truncate"
         style={{ color: form.text_color }}
