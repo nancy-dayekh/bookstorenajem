@@ -43,39 +43,30 @@ export default function EditProductPage() {
   const [form, setForm] = useState<Product | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
-  // Fetch data
   useEffect(() => {
     async function fetchColors() {
-      const { data, error } = await supabase
-        .from<Color>("colors")
-        .select("*")
-        .order("id", { ascending: true });
+      const { data, error } = await supabase.from("colors").select("*"); // لا تضعي generic
       if (error) toast.error(error.message);
-      else setColors(data || []);
+      else setColors((data || []) as Color[]); // type assertion
     }
 
     async function fetchCategories() {
-      const { data, error } = await supabase.from<Category>("categories").select("*");
+      const { data, error } = await supabase.from("categories").select("*");
       if (error) toast.error(error.message);
-      else setCategories(data || []);
+      else setCategories((data || []) as Category[]);
     }
 
     async function fetchProduct() {
-      const { data, error } = await supabase
-        .from<Product>("add_products")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const { data, error } = await supabase.from("add_products").select("*").eq("id", id).single();
       if (error) toast.error(error.message);
-      else setForm(data);
+      else setForm(data as Product);
     }
 
     fetchColors();
     fetchCategories();
     fetchProduct();
-  }, [id]); // استخدم id كـ dependency
+  }, [id]);
 
-  // Upload image
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
@@ -85,7 +76,6 @@ export default function EditProductPage() {
     return publicUrlData.publicUrl;
   }
 
-  // Save changes
   async function handleSave() {
     if (!form) return;
 
@@ -94,7 +84,7 @@ export default function EditProductPage() {
       if (file) imageUrl = await uploadImage(file);
 
       const { error } = await supabase
-        .from<Product>("add_products")
+        .from("add_products")
         .update({
           ...form,
           years: form.years ? Number(form.years) : null,
@@ -114,12 +104,8 @@ export default function EditProductPage() {
     }
   }
 
-  // Handle input changes
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, type, value, checked } = e.target;
-
     setForm((prev) => {
       if (!prev) return prev;
 
@@ -127,144 +113,55 @@ export default function EditProductPage() {
       if (type === "checkbox") newValue = checked;
       else if (type === "number") newValue = value ? Number(value) : null;
 
-      return {
-        ...prev,
-        [name]: newValue,
-      };
+      return { ...prev, [name]: newValue };
     });
   };
 
   if (!form) return <div className="text-center py-20">Loading...</div>;
 
-  const mainColor = colors[0] || {
-    text_color: "#000",
-    button_hex: "#4f46e5",
-    button_text_color: "#fff",
-  };
+  const mainColor = colors[0] || { text_color: "#000", button_hex: "#4f46e5", button_text_color: "#fff" };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Toaster />
-      <h1
-        className="text-2xl sm:text-3xl font-bold mb-6 text-center"
-        style={{ color: mainColor.text_color }}
-      >
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center" style={{ color: mainColor.text_color }}>
         Edit Product
       </h1>
 
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 md:p-8 flex flex-col gap-4">
-        <input
-          type="text"
-          name="name"
-          placeholder="Name"
-          value={form.name || ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-
-        <input
-          type="number"
-          name="years"
-          placeholder="Year"
-          value={form.years ?? ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-
-        <input
-          type="text"
-          name="size"
-          placeholder="Size"
-          value={form.size || ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
+        <input type="text" name="name" placeholder="Name" value={form.name || ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+        <input type="number" name="years" placeholder="Year" value={form.years ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+        <input type="text" name="size" placeholder="Size" value={form.size || ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <input
-            type="number"
-            name="quantity"
-            placeholder="Quantity"
-            value={form.quantity ?? ""}
-            onChange={handleChange}
-            className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="number"
-            name="price"
-            placeholder="Price"
-            value={form.price ?? ""}
-            onChange={handleChange}
-            className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-          />
+          <input type="number" name="quantity" placeholder="Quantity" value={form.quantity ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+          <input type="number" name="price" placeholder="Price" value={form.price ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
         </div>
 
-        <input
-          type="number"
-          name="numberOfOffer"
-          placeholder="Number of Offer"
-          value={form.numberOfOffer ?? ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
+        <input type="number" name="numberOfOffer" placeholder="Number of Offer" value={form.numberOfOffer ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
 
-        <select
-          name="category_id"
-          value={form.category_id ?? ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        >
+        <select name="category_id" value={form.category_id ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400">
           <option value="">Select Category</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
 
-        <input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-
-        <textarea
-          name="description"
-          placeholder="Description"
-          value={form.description || ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
+        <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+        <textarea name="description" placeholder="Description" value={form.description || ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="offer_status"
-              checked={form.offer_status || false}
-              onChange={handleChange}
-            />
+            <input type="checkbox" name="offer_status" checked={form.offer_status || false} onChange={handleChange} />
             Offer Status
           </label>
           <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="is_new_collection"
-              checked={form.is_new_collection || false}
-              onChange={handleChange}
-            />
+            <input type="checkbox" name="is_new_collection" checked={form.is_new_collection || false} onChange={handleChange} />
             New Collection
           </label>
         </div>
 
-        <button
-          onClick={handleSave}
-          style={{
-            backgroundColor: mainColor.button_hex,
-            color: mainColor.button_text_color,
-          }}
-          className="w-full py-3 rounded-lg font-semibold text-lg mt-4 transition-transform hover:scale-105"
-        >
+        <button onClick={handleSave} style={{ backgroundColor: mainColor.button_hex, color: mainColor.button_text_color }} className="w-full py-3 rounded-lg font-semibold text-lg mt-4 transition-transform hover:scale-105">
           Save Changes
         </button>
       </div>
