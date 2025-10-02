@@ -42,7 +42,7 @@ export default function AddProductPage() {
   // Fetch colors (type-safe)
   async function fetchColors() {
     const { data, error } = await supabase
-      .from<ColorForm>("colors")
+      .from<ColorForm, unknown>("colors")
       .select("*")
       .order("id");
 
@@ -53,7 +53,7 @@ export default function AddProductPage() {
   // Fetch categories (type-safe)
   async function fetchCategories() {
     const { data, error } = await supabase
-      .from<Category>("categories")
+      .from<Category, unknown>("categories")
       .select("*");
 
     if (error) toast.error(error.message);
