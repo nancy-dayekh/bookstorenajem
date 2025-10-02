@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,8 +14,10 @@ interface ColorForm {
 
 export default function EditLogoPage() {
   const params = useParams();
-  const logoId = params.id;
   const router = useRouter();
+
+  // Normalize id to string
+  const logoId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -50,22 +51,28 @@ export default function EditLogoPage() {
 
   async function handleSave() {
     if (!file) return toast.error("Please select an image to update.");
+
     try {
-      // Delete old file
+      // Delete old file if exists
       if (preview) {
         const oldFileName = preview.split("/").pop();
-        await supabase.storage.from("logo").remove([oldFileName!]);
+        if (oldFileName) {
+          await supabase.storage.from("logos").remove([oldFileName]);
+        }
       }
 
       const newUrl = await uploadImage(file);
+
+      if (!logoId) return toast.error("Logo ID missing!");
 
       const { error } = await supabase.from("logos").update({ logo_url: newUrl }).eq("id", logoId);
       if (error) throw error;
 
       toast.success("Logo updated!");
       router.push("/admin/logos/LogoDisplayPage");
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("An unexpected error occurred");
     }
   }
 
@@ -75,12 +82,19 @@ export default function EditLogoPage() {
   return (
     <div className="max-w-3xl mx-auto p-6">
       <Toaster position="top-right" />
-      <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center" style={{ color: mainColor.text_color }}>
+      <h1
+        className="text-2xl sm:text-4xl font-bold mb-6 text-center"
+        style={{ color: mainColor.text_color }}
+      >
         Edit Logo
       </h1>
 
       {preview && (
-        <img src={preview} alt="Preview" className="w-32 h-32 object-contain mb-4 mx-auto rounded-lg" />
+        <img
+          src={preview}
+          alt="Preview"
+          className="w-32 h-32 object-contain mb-4 mx-auto rounded-lg"
+        />
       )}
 
       <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -88,7 +102,7 @@ export default function EditLogoPage() {
           type="file"
           accept="image/*"
           onChange={(e) => {
-            const f = e.target.files?.[0] || null;
+            const f = e.target.files?.[0] ?? null;
             setFile(f);
             if (f) setPreview(URL.createObjectURL(f));
           }}
@@ -99,10 +113,12 @@ export default function EditLogoPage() {
           style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
           className="px-6 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
           onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hover_color)
+            ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              mainColor.button_hover_color)
           }
           onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hex)
+            ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              mainColor.button_hex)
           }
         >
           Save Changes
