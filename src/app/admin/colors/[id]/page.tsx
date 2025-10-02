@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter, useParams } from "next/navigation";
@@ -34,32 +34,32 @@ export default function EditColorPage() {
 
   const [loading, setLoading] = useState(false);
 
-  // Fetch color details on page load
-  useEffect(() => {
+  // ✅ Fetch color details (useCallback to avoid ESLint warning)
+  const fetchColor = useCallback(async () => {
     if (!colorId) return;
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .eq("id", colorId)
+      .single<ColorForm>();
 
-    async function fetchColor() {
-      const { data, error } = await supabase
-        .from("colors")
-        .select("*")
-        .eq("id", colorId)
-        .single<ColorForm>();
-
-      if (error) toast.error(error.message);
-      else if (data) setForm(data);
-    }
-
-    fetchColor();
+    if (error) toast.error(error.message);
+    else if (data) setForm(data);
   }, [colorId]);
+
+  useEffect(() => {
+    fetchColor();
+  }, [fetchColor]);
 
   // Update color
   async function handleUpdate() {
-    if (!form.name || !form.hex) return toast.error("Name and Hex color required!");
+    if (!form.name || !form.hex)
+      return toast.error("Name and Hex color required!");
     if (!colorId || isNaN(colorId)) return toast.error("Invalid color ID");
 
     try {
       setLoading(true);
-      const { id, ...updateData } = form; // omit id to avoid error
+      const { id, ...updateData } = form; // omit id so it won’t update
       const { error } = await supabase
         .from("colors")
         .update(updateData)
