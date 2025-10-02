@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
-import { supabase } from "../../../../../lib/supabaseClient";
+import { useState, useEffect } from "react";
+import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-// Types
 interface ColorForm {
   id: number;
   button_hex: string;
@@ -13,247 +13,130 @@ interface ColorForm {
   button_hover_color: string;
 }
 
-interface Category {
-  id: number;
-  name: string;
-}
-
-interface ProductForm {
-  name: string;
-  years?: number | null;
-  size?: string | null;
-  quantity?: number | null;
-  price?: number | null;
-  offer_status?: boolean;
-  is_new_collection?: boolean;
-  category_id?: number | null;
-  image?: string | null;
-  description?: string | null;
-}
-
-export default function AddProductPage() {
+export default function DisplayProductsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [products, setProducts] = useState<any[]>([]);
   const [colors, setColors] = useState<ColorForm[] | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [form, setForm] = useState<ProductForm>({
-    name: "",
-    years: null,
-    size: "",
-    quantity: null,
-    price: null,
-    offer_status: false,
-    is_new_collection: false,
-    category_id: null,
-    image: "",
-    description: "",
-  });
-  const [file, setFile] = useState<File | null>(null);
-
   const router = useRouter();
 
-  // Fetch colors
-  async function fetchColors() {
-    const { data, error } = await supabase
-      .from<ColorForm, ColorForm>("colors")
-      .select("*")
-      .order("id");
+  useEffect(() => {
+    fetchProducts();
+    fetchColors();
+  }, []);
 
+  async function fetchProducts() {
+    const { data, error } = await supabase.from("add_products").select("*");
+    if (error) toast.error(error.message);
+    else setProducts(data || []);
+  }
+
+  async function fetchColors() {
+    const { data, error } = await supabase.from("colors").select("*").order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
 
-  // Fetch categories
-  async function fetchCategories() {
-    const { data, error } = await supabase
-      .from<Category, Category>("categories")
-      .select("*");
-
+  async function deleteProduct(id: number) {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+    const { error } = await supabase.from("add_products").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else setCategories(data || []);
-  }
-
-  useEffect(() => {
-    fetchColors();
-    fetchCategories();
-  }, []);
-
-  // Upload image
-  async function uploadImage(file: File) {
-    const fileName = `public/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("products-images")
-      .upload(fileName, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data: publicUrlData } = supabase.storage
-      .from("products-images")
-      .getPublicUrl(fileName);
-
-    return publicUrlData.publicUrl;
-  }
-
-  // Handle form change
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
-  ) => {
-    const { name, type, value, checked } = e.target;
-
-    setForm((prev) => ({
-      ...prev!,
-      [name]: type === "checkbox" ? checked : type === "number" ? (value ? Number(value) : null) : value,
-    }));
-  };
-
-  // Submit product
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!form.name || !form.size || !form.category_id) {
-      toast.error("Please fill all required fields.");
-      return;
+    else {
+      toast.success("Product deleted!");
+      fetchProducts();
     }
-
-    try {
-      let imageUrl = form.image || "";
-      if (file) imageUrl = await uploadImage(file);
-
-      const { error } = await supabase
-        .from<ProductForm, ProductForm>("add_products")
-        .insert([{ ...form, image: imageUrl }]);
-
-      if (error) throw error;
-      toast.success("Product added successfully!");
-      router.push("/admin/products/display-products");
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("Unexpected error occurred.");
-    }
-  };
+  }
 
   if (!colors) return <div className="text-center py-20">Loading...</div>;
   const mainColor = colors[0];
 
+  const getRowColor = (index: number) => colors[index % colors.length];
+
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6">
       <Toaster position="top-right" />
-      <h1
-        className="text-3xl font-bold mb-6 text-center"
-        style={{ color: mainColor.text_color }}
-      >
-        Add New Product
+
+      <h1 className="text-3xl font-bold mb-6 text-center" style={{ color: mainColor.text_color }}>
+        Products List
       </h1>
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white rounded-xl shadow-md p-4 sm:p-6 md:p-8 flex flex-col gap-4"
-      >
-        <input
-          type="text"
-          name="name"
-          placeholder="Product Name"
-          value={form.name}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-          required
-        />
-
-        <input
-          type="number"
-          name="years"
-          placeholder="Year"
-          value={form.years ?? ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-
-        <input
-          type="text"
-          name="size"
-          placeholder="Size"
-          value={form.size}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-          required
-        />
-
-        <div className="flex flex-col sm:flex-row gap-4">
-          <input
-            type="number"
-            name="quantity"
-            placeholder="Quantity"
-            value={form.quantity ?? ""}
-            onChange={handleChange}
-            className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-          />
-          <input
-            type="number"
-            name="price"
-            placeholder="Price"
-            value={form.price ?? ""}
-            onChange={handleChange}
-            className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-
-        <textarea
-          name="description"
-          placeholder="Description"
-          value={form.description || ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-
-        <select
-          name="category_id"
-          value={form.category_id ?? ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-          required
-        >
-          <option value="">Select Category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="offer_status"
-              checked={form.offer_status || false}
-              onChange={handleChange}
-            />
-            Offer Status
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="is_new_collection"
-              checked={form.is_new_collection || false}
-              onChange={handleChange}
-            />
-            New Collection
-          </label>
-        </div>
-
+      {/* Add Product Button */}
+      <div className="mb-4 flex justify-end">
         <button
-          type="submit"
+          onClick={() => router.push("/admin/products/AddProductPage")}
           style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
-          className="w-full py-3 rounded-lg font-semibold text-lg mt-4 transition-transform hover:scale-105"
+          className="px-6 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hover_color)
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hex)
+          }
         >
-          Add Product
+          + Add Product
         </button>
-      </form>
+      </div>
+
+      {/* Products Table */}
+      <div className="overflow-x-auto rounded-xl shadow-md bg-white">
+        <table className="min-w-full text-sm sm:text-base border-collapse">
+          <thead style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}>
+            <tr>
+              {["Name", "Year", "Size", "Qty", "Price", "Offer", "New Collection", "Image", "Actions"].map((t) => (
+                <th key={t} className="p-2 sm:p-3 text-left">{t}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {products.length > 0 ? (
+              products.map((p, index) => {
+                const rowColor = getRowColor(index);
+                return (
+                  <tr key={p.id} className="border-b hover:brightness-95 transition-all">
+                    <td className="p-2 sm:p-3">{p.name}</td>
+                    <td className="p-2 sm:p-3">{p.years}</td>
+                    <td className="p-2 sm:p-3">{p.size}</td>
+                    <td className="p-2 sm:p-3">{p.quantity}</td>
+                    <td className="p-2 sm:p-3">{p.price}</td>
+                    <td className="p-2 sm:p-3">{p.offer_status ? "Yes" : "No"}</td>
+                    <td className="p-2 sm:p-3">{p.is_new_collection ? "Yes" : "No"}</td>
+                    <td className="p-2 sm:p-3">
+                      {p.image && <Image src={p.image} alt={p.name} width={50} height={50} className="object-cover rounded" />}
+                    </td>
+                    <td className="p-2 sm:p-3 flex flex-wrap gap-2 justify-center">
+                      <button
+                        onClick={() => router.push(`/admin/products/EditProductPage?id=${p.id}`)}
+                        style={{ backgroundColor: rowColor.button_hex, color: rowColor.text_color }}
+                        className="px-4 py-1 rounded-lg font-semibold transition-transform hover:scale-105"
+                        onMouseEnter={(e) =>
+                          ((e.currentTarget as HTMLButtonElement).style.backgroundColor = rowColor.button_hover_color)
+                        }
+                        onMouseLeave={(e) =>
+                          ((e.currentTarget as HTMLButtonElement).style.backgroundColor = rowColor.button_hex)
+                        }
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteProduct(p.id)}
+                        style={{ backgroundColor: "#f43f5e", color: "#fff" }}
+                        className="px-4 py-1 rounded-lg font-semibold transition-transform hover:scale-105"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={9} className="p-3 text-center text-gray-500">
+                  No products available.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
