@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -28,14 +27,24 @@ interface CheckoutForm {
   total: string;
 }
 
+interface Product {
+  id: number;
+  name: string;
+}
+
+interface Delivery {
+  id: number;
+  salary: string;
+}
+
 export default function EditCheckoutPage() {
   const router = useRouter();
   const params = useParams();
-  const checkoutId = params.id;
+  const checkoutId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [colors, setColors] = useState<ColorForm[] | null>(null);
-  const [products, setProducts] = useState<any[]>([]);
-  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [form, setForm] = useState<CheckoutForm>({
     first_name: "",
     last_name: "",
@@ -64,10 +73,17 @@ export default function EditCheckoutPage() {
   }
 
   async function fetchRelations() {
-    const { data: productsData } = await supabase.from("add_products").select("*");
-    setProducts(productsData || []);
-    const { data: deliveriesData } = await supabase.from("deliveries").select("*");
-    setDeliveries(deliveriesData || []);
+    const { data: productsData, error: productsError } = await supabase
+      .from("add_products")
+      .select("*");
+    if (productsError) toast.error(productsError.message);
+    else setProducts(productsData || []);
+
+    const { data: deliveriesData, error: deliveriesError } = await supabase
+      .from("deliveries")
+      .select("*");
+    if (deliveriesError) toast.error(deliveriesError.message);
+    else setDeliveries(deliveriesData || []);
   }
 
   async function fetchCheckout(id: string) {
@@ -99,10 +115,10 @@ export default function EditCheckoutPage() {
 
   async function handleSave() {
     try {
+      if (!checkoutId) return toast.error("Checkout ID missing!");
+
       const productId = form.product_id ? Number(form.product_id) : null;
       const deliveryId = form.delivery_id ? Number(form.delivery_id) : null;
-
-      if (!checkoutId) return toast.error("Checkout ID missing!");
 
       const { error: checkoutError } = await supabase
         .from("checkouts")
@@ -132,7 +148,7 @@ export default function EditCheckoutPage() {
           .update({
             product_id: productId,
             size: form.size,
-            quantity: form.quantity || 1,
+            quantity: form.quantity,
           })
           .eq("id", existingItems[0].id);
       } else {
@@ -141,14 +157,14 @@ export default function EditCheckoutPage() {
             checkout_id: checkoutId,
             product_id: productId,
             size: form.size,
-            quantity: form.quantity || 1,
+            quantity: form.quantity,
           },
         ]);
       }
 
       toast.success("Checkout Updated!");
       router.push("/admin/checkouts");
-    } catch (err: any) {
+    } catch (err: never) {
       toast.error(err.message);
     }
   }
@@ -167,22 +183,26 @@ export default function EditCheckoutPage() {
       </h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {[
-          "first_name",
-          "last_name",
-          "address",
-          "phone",
-          "city",
-          "region",
-          "subtotal",
-          "total",
-        ].map((field) => (
+        {(
+          [
+            "first_name",
+            "last_name",
+            "address",
+            "phone",
+            "city",
+            "region",
+            "subtotal",
+            "total",
+          ] as const
+        ).map((field) => (
           <input
             key={field}
             type="text"
             placeholder={field.replace("_", " ").toUpperCase()}
-            value={(form as any)[field]}
-            onChange={(e) => setForm({ ...form, [field]: e.target.value })}
+            value={form[field]}
+            onChange={(e) =>
+              setForm({ ...form, [field]: e.target.value })
+            }
             className="border p-3 rounded-md w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-400"
           />
         ))}
@@ -213,7 +233,9 @@ export default function EditCheckoutPage() {
           placeholder="Quantity"
           value={form.quantity}
           min={1}
-          onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+          onChange={(e) =>
+            setForm({ ...form, quantity: Number(e.target.value) })
+          }
           className="border p-3 rounded-md w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-400"
         />
 
@@ -232,7 +254,10 @@ export default function EditCheckoutPage() {
 
         <button
           onClick={handleSave}
-          style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
+          style={{
+            backgroundColor: mainColor.button_hex,
+            color: mainColor.text_color,
+          }}
           className="col-span-1 sm:col-span-2 w-full py-4 rounded-2xl font-semibold transition-transform hover:scale-105 text-base sm:text-lg md:text-xl"
           onMouseEnter={(e) =>
             ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
