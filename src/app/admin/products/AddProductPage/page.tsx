@@ -5,6 +5,7 @@ import { supabase } from "../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
+// Types
 interface ColorForm {
   id: number;
   button_hex: string;
@@ -38,27 +39,44 @@ export default function AddProductPage() {
     fetchCategories();
   }, []);
 
+  // Fetch colors with correct type arguments
   async function fetchColors() {
-    const { data, error } = await supabase.from<ColorForm>("colors").select("*").order("id");
+    const { data, error } = await supabase
+      .from<ColorForm, ColorForm>("colors")
+      .select("*")
+      .order("id");
+
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
 
+  // Fetch categories with correct type arguments
   async function fetchCategories() {
-    const { data, error } = await supabase.from<Category>("categories").select("*");
+    const { data, error } = await supabase
+      .from<Category, Category>("categories")
+      .select("*");
+
     if (error) toast.error(error.message);
     else setCategories(data || []);
   }
 
+  // Upload image to Supabase Storage
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage
+      .from("products-images")
+      .upload(fileName, file);
+
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage.from("products-images").getPublicUrl(fileName);
+    const { data: publicUrlData } = supabase.storage
+      .from("products-images")
+      .getPublicUrl(fileName);
+
     return publicUrlData.publicUrl;
   }
 
+  // Handle form submission
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !size || !categoryId) return toast.error("Please fill all required fields.");
