@@ -43,41 +43,24 @@ export default function EditProductPage() {
   const [form, setForm] = useState<Product | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
-  // Fetch colors
-  async function fetchColors() {
-    const { data, error } = await supabase
-      .from<Color>("colors")
-      .select("*")
-      .order("id", { ascending: true });
-    if (error) toast.error(error.message);
-    else setColors(data || []);
-  }
-
-  // Fetch categories
-  async function fetchCategories() {
-    const { data, error } = await supabase
-      .from<Category>("categories")
-      .select("*");
-    if (error) toast.error(error.message);
-    else setCategories(data || []);
-  }
-
-  // Fetch product
-  async function fetchProduct() {
-    const { data, error } = await supabase
-      .from<Product>("add_products")
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (error) toast.error(error.message);
-    else setForm(data);
-  }
-
+  // Fetch data
   useEffect(() => {
-    fetchColors();
-    fetchCategories();
+    async function fetchColors() {
+      const { data, error } = await supabase
+        .from<Color>("colors")
+        .select("*")
+        .order("id", { ascending: true });
+      if (error) toast.error(error.message);
+      else setColors(data || []);
+    }
 
-    async function fetchProductData() {
+    async function fetchCategories() {
+      const { data, error } = await supabase.from<Category>("categories").select("*");
+      if (error) toast.error(error.message);
+      else setCategories(data || []);
+    }
+
+    async function fetchProduct() {
       const { data, error } = await supabase
         .from<Product>("add_products")
         .select("*")
@@ -87,20 +70,18 @@ export default function EditProductPage() {
       else setForm(data);
     }
 
-    fetchProductData();
-  }, []);
+    fetchColors();
+    fetchCategories();
+    fetchProduct();
+  }, [id]); // استخدم id كـ dependency
 
   // Upload image
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("products-images")
-      .upload(fileName, file);
+    const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage
-      .from("products-images")
-      .getPublicUrl(fileName);
+    const { data: publicUrlData } = supabase.storage.from("products-images").getPublicUrl(fileName);
     return publicUrlData.publicUrl;
   }
 
