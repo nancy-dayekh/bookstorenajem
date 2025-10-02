@@ -10,11 +10,26 @@ interface ColorForm {
   id: number;
   button_hex: string;
   text_color: string;
-  button_hover_color: string;
+  button_hover_color?: string;
+}
+
+interface Product {
+  id: number;
+  name: string;
+  years?: number | null;
+  size?: string | null;
+  quantity?: number | null;
+  price?: number | null;
+  numberOfOffer?: number | null;
+  category_id?: number | null;
+  image?: string | null;
+  description?: string | null;
+  offer_status?: boolean;
+  is_new_collection?: boolean;
 }
 
 export default function DisplayProductsPage() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [colors, setColors] = useState<ColorForm[] | null>(null);
   const router = useRouter();
 
@@ -24,13 +39,13 @@ export default function DisplayProductsPage() {
   }, []);
 
   async function fetchProducts() {
-    const { data, error } = await supabase.from("add_products").select("*");
+    const { data, error } = await supabase.from<Product>("add_products").select("*");
     if (error) toast.error(error.message);
     else setProducts(data || []);
   }
 
   async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
+    const { data, error } = await supabase.from<ColorForm>("colors").select("*").order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
@@ -48,7 +63,7 @@ export default function DisplayProductsPage() {
   if (!colors) return <div className="text-center py-20">Loading...</div>;
   const mainColor = colors[0];
 
-  const getRowColor = (index: number) => colors[index % colors.length];
+  const getRowColor = (index: number) => colors![index % colors.length];
 
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6">
@@ -65,7 +80,7 @@ export default function DisplayProductsPage() {
           style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
           className="px-6 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
           onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hover_color)
+            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hover_color!)
           }
           onMouseLeave={(e) =>
             ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hex)
@@ -107,7 +122,7 @@ export default function DisplayProductsPage() {
                         style={{ backgroundColor: rowColor.button_hex, color: rowColor.text_color }}
                         className="px-4 py-1 rounded-lg font-semibold transition-transform hover:scale-105"
                         onMouseEnter={(e) =>
-                          ((e.currentTarget as HTMLButtonElement).style.backgroundColor = rowColor.button_hover_color)
+                          ((e.currentTarget as HTMLButtonElement).style.backgroundColor = rowColor.button_hover_color!)
                         }
                         onMouseLeave={(e) =>
                           ((e.currentTarget as HTMLButtonElement).style.backgroundColor = rowColor.button_hex)
