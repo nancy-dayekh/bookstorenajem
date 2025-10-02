@@ -39,27 +39,26 @@ export default function AddProductPage() {
     fetchCategories();
   }, []);
 
-// Fetch colors (type-safe)
-async function fetchColors() {
-  const { data, error } = await supabase
-    .from("colors")            // لا تضع النوع هنا
-    .select<ColorForm>("*")    // ضع النوع هنا
-    .order("id");
+  async function fetchColors() {
+    const { data, error } = await supabase.from("colors").select("*"); // لا تضعي أي generic هنا
 
-  if (error) toast.error(error.message);
-  else setColors(data || []); // data الآن من النوع ColorForm[] | null
-}
+    if (error) {
+      toast.error(error.message);
+    } else {
+      // اعملي type assertion هنا
+      setColors((data || []) as ColorForm[]);
+    }
+  }
 
-// Fetch categories (type-safe)
-async function fetchCategories() {
-  const { data, error } = await supabase
-    .from("categories")
-    .select<Category>("*");     // ضع النوع هنا
+  async function fetchCategories() {
+    const { data, error } = await supabase.from("categories").select("*");
 
-  if (error) toast.error(error.message);
-  else setCategories(data || []);
-}
-
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setCategories((data || []) as Category[]);
+    }
+  }
 
   // Upload image
   async function uploadImage(file: File) {
