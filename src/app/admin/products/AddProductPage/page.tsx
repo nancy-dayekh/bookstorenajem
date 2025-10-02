@@ -39,26 +39,27 @@ export default function AddProductPage() {
     fetchCategories();
   }, []);
 
-  // Fetch colors (type-safe)
-  async function fetchColors() {
-    const { data, error } = await supabase
-      .from<ColorForm, unknown>("colors")
-      .select("*")
-      .order("id");
+// Fetch colors (type-safe)
+async function fetchColors() {
+  const { data, error } = await supabase
+    .from("colors")            // لا تضع النوع هنا
+    .select<ColorForm>("*")    // ضع النوع هنا
+    .order("id");
 
-    if (error) toast.error(error.message);
-    else setColors(data || []);
-  }
+  if (error) toast.error(error.message);
+  else setColors(data || []); // data الآن من النوع ColorForm[] | null
+}
 
-  // Fetch categories (type-safe)
-  async function fetchCategories() {
-    const { data, error } = await supabase
-      .from<Category, unknown>("categories")
-      .select("*");
+// Fetch categories (type-safe)
+async function fetchCategories() {
+  const { data, error } = await supabase
+    .from("categories")
+    .select<Category>("*");     // ضع النوع هنا
 
-    if (error) toast.error(error.message);
-    else setCategories(data || []);
-  }
+  if (error) toast.error(error.message);
+  else setCategories(data || []);
+}
+
 
   // Upload image
   async function uploadImage(file: File) {
@@ -79,7 +80,8 @@ export default function AddProductPage() {
   // Handle submit
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name || !size || !categoryId) return toast.error("Please fill all required fields.");
+    if (!name || !size || !categoryId)
+      return toast.error("Please fill all required fields.");
 
     let imageUrl = "";
     if (file) imageUrl = await uploadImage(file);
@@ -213,13 +215,18 @@ export default function AddProductPage() {
 
         <button
           type="submit"
-          style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
+          style={{
+            backgroundColor: mainColor.button_hex,
+            color: mainColor.text_color,
+          }}
           className="w-full py-3 rounded-lg font-semibold text-lg transition-transform hover:scale-105 col-span-1 md:col-span-2"
           onMouseEnter={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hover_color)
+            ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              mainColor.button_hover_color)
           }
           onMouseLeave={(e) =>
-            ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hex)
+            ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              mainColor.button_hex)
           }
         >
           Add Product
