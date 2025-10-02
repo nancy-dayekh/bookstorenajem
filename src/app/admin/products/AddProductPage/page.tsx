@@ -101,7 +101,7 @@ export default function AddProductPage() {
     if (error) toast.error(error.message);
     else {
       toast.success("Product added successfully!");
-      router.push("/admin/products/display-products");
+      router.push("/admin/products");
     }
   }
 
