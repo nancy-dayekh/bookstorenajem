@@ -57,7 +57,11 @@ export default function EditProductPage() {
     }
 
     async function fetchProduct() {
-      const { data, error } = await supabase.from("add_products").select("*").eq("id", id).single();
+      const { data, error } = await supabase
+        .from("add_products")
+        .select("*")
+        .eq("id", id)
+        .single();
       if (error) toast.error(error.message);
       else setForm(data as Product);
     }
@@ -69,10 +73,14 @@ export default function EditProductPage() {
 
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage
+      .from("products-images")
+      .upload(fileName, file);
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage.from("products-images").getPublicUrl(fileName);
+    const { data: publicUrlData } = supabase.storage
+      .from("products-images")
+      .getPublicUrl(fileName);
     return publicUrlData.publicUrl;
   }
 
@@ -104,64 +112,158 @@ export default function EditProductPage() {
     }
   }
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, type, value, checked } = e.target;
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const target = e.target;
+    const name = target.name;
+    const type = target.type;
+
+    let value: string | number | boolean | null = target.value;
+
+    if (type === "checkbox" && "checked" in target) {
+      value = target.checked;
+    } else if (type === "number") {
+      value = target.value ? Number(target.value) : null;
+    }
+
     setForm((prev) => {
       if (!prev) return prev;
-
-      let newValue: string | number | boolean | null = value;
-      if (type === "checkbox") newValue = checked;
-      else if (type === "number") newValue = value ? Number(value) : null;
-
-      return { ...prev, [name]: newValue };
+      return {
+        ...prev,
+        [name]: value,
+      };
     });
   };
 
   if (!form) return <div className="text-center py-20">Loading...</div>;
 
-  const mainColor = colors[0] || { text_color: "#000", button_hex: "#4f46e5", button_text_color: "#fff" };
+  const mainColor = colors[0] || {
+    text_color: "#000",
+    button_hex: "#4f46e5",
+    button_text_color: "#fff",
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Toaster />
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center" style={{ color: mainColor.text_color }}>
+      <h1
+        className="text-2xl sm:text-3xl font-bold mb-6 text-center"
+        style={{ color: mainColor.text_color }}
+      >
         Edit Product
       </h1>
 
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 md:p-8 flex flex-col gap-4">
-        <input type="text" name="name" placeholder="Name" value={form.name || ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
-        <input type="number" name="years" placeholder="Year" value={form.years ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
-        <input type="text" name="size" placeholder="Size" value={form.size || ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+        <input
+          type="text"
+          name="name"
+          placeholder="Name"
+          value={form.name || ""}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+        />
+        <input
+          type="number"
+          name="years"
+          placeholder="Year"
+          value={form.years ?? ""}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+        />
+        <input
+          type="text"
+          name="size"
+          placeholder="Size"
+          value={form.size || ""}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+        />
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <input type="number" name="quantity" placeholder="Quantity" value={form.quantity ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
-          <input type="number" name="price" placeholder="Price" value={form.price ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+          <input
+            type="number"
+            name="quantity"
+            placeholder="Quantity"
+            value={form.quantity ?? ""}
+            onChange={handleChange}
+            className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+          />
+          <input
+            type="number"
+            name="price"
+            placeholder="Price"
+            value={form.price ?? ""}
+            onChange={handleChange}
+            className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+          />
         </div>
 
-        <input type="number" name="numberOfOffer" placeholder="Number of Offer" value={form.numberOfOffer ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+        <input
+          type="number"
+          name="numberOfOffer"
+          placeholder="Number of Offer"
+          value={form.numberOfOffer ?? ""}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+        />
 
-        <select name="category_id" value={form.category_id ?? ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400">
+        <select
+          name="category_id"
+          value={form.category_id ?? ""}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+        >
           <option value="">Select Category</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
           ))}
         </select>
 
-        <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
-        <textarea name="description" placeholder="Description" value={form.description || ""} onChange={handleChange} className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400" />
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+        />
+        <textarea
+          name="description"
+          placeholder="Description"
+          value={form.description || ""}
+          onChange={handleChange}
+          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
+        />
 
         <div className="flex flex-col sm:flex-row gap-4 items-center">
           <label className="flex items-center gap-2">
-            <input type="checkbox" name="offer_status" checked={form.offer_status || false} onChange={handleChange} />
+            <input
+              type="checkbox"
+              name="offer_status"
+              checked={form.offer_status || false}
+              onChange={handleChange}
+            />
             Offer Status
           </label>
           <label className="flex items-center gap-2">
-            <input type="checkbox" name="is_new_collection" checked={form.is_new_collection || false} onChange={handleChange} />
+            <input
+              type="checkbox"
+              name="is_new_collection"
+              checked={form.is_new_collection || false}
+              onChange={handleChange}
+            />
             New Collection
           </label>
         </div>
 
-        <button onClick={handleSave} style={{ backgroundColor: mainColor.button_hex, color: mainColor.button_text_color }} className="w-full py-3 rounded-lg font-semibold text-lg mt-4 transition-transform hover:scale-105">
+        <button
+          onClick={handleSave}
+          style={{
+            backgroundColor: mainColor.button_hex,
+            color: mainColor.button_text_color,
+          }}
+          className="w-full py-3 rounded-lg font-semibold text-lg mt-4 transition-transform hover:scale-105"
+        >
           Save Changes
         </button>
       </div>
