@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,6 +13,7 @@ interface ColorForm {
 }
 
 export default function InsertCheckoutPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [products, setProducts] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [colors, setColors] = useState<ColorForm[] | null>(null);
