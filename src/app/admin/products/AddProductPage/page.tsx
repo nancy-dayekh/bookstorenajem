@@ -39,10 +39,10 @@ export default function AddProductPage() {
     fetchCategories();
   }, []);
 
-  // Fetch colors with correct type arguments
+  // Fetch colors (type-safe)
   async function fetchColors() {
     const { data, error } = await supabase
-      .from<ColorForm, ColorForm>("colors")
+      .from<ColorForm>("colors")
       .select("*")
       .order("id");
 
@@ -50,17 +50,17 @@ export default function AddProductPage() {
     else setColors(data || []);
   }
 
-  // Fetch categories with correct type arguments
+  // Fetch categories (type-safe)
   async function fetchCategories() {
     const { data, error } = await supabase
-      .from<Category, Category>("categories")
+      .from<Category>("categories")
       .select("*");
 
     if (error) toast.error(error.message);
     else setCategories(data || []);
   }
 
-  // Upload image to Supabase Storage
+  // Upload image
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -76,7 +76,7 @@ export default function AddProductPage() {
     return publicUrlData.publicUrl;
   }
 
-  // Handle form submission
+  // Handle submit
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !size || !categoryId) return toast.error("Please fill all required fields.");
