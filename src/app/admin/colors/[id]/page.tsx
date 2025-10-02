@@ -78,10 +78,12 @@ export default function EditColorPage() {
 
       toast.success("✅ Color updated successfully!");
       router.push("/admin/colors");
-    } catch (err: any) {
-      toast.error(err?.message || "Unexpected error occurred");
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error(err.message);
+      } else {
+        toast.error("Unexpected error occurred");
+      }
     }
   }
 
