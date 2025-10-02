@@ -1,226 +1,159 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import { Pencil, Trash2 } from "lucide-react";
+import Link from "next/link";
 
-export default function LogoManager() {
+interface ColorForm {
+  id?: number;
+  button_hex: string;
+  button_hover_color: string;
+  text_color: string;
+}
+
+export default function LogoDisplayPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [logos, setLogos] = useState<any[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editFile, setEditFile] = useState<File | null>(null);
-  const [editPreview, setEditPreview] = useState<string | null>(null);
+  const [colors, setColors] = useState<ColorForm[] | null>(null);
 
-  // Fetch logos
+  useEffect(() => {
+    fetchLogos();
+    fetchColors();
+  }, []);
+
   async function fetchLogos() {
     const { data, error } = await supabase
       .from("logos")
       .select("*")
-      .order("id", { ascending: true });
-
+      .order("id");
     if (error) toast.error(error.message);
     else setLogos(data || []);
   }
 
-  // Upload image
-  async function uploadImage(file: File) {
-    const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("logos")
-      .upload(fileName, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data: publicUrlData } = supabase.storage
-      .from("logos")
-      .getPublicUrl(fileName);
-
-    return publicUrlData.publicUrl;
+  async function fetchColors() {
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id");
+    if (error) toast.error(error.message);
+    else setColors(data || []);
   }
 
-  // Add logo
-  async function handleAddLogo() {
-    if (!file) return toast.error("Please select an image.");
-    try {
-      const imageUrl = await uploadImage(file);
-      const { error } = await supabase.from("logos").insert([{ logo_url: imageUrl }]);
-      if (error) throw error;
-
-      toast.success("Logo Added!");
-      setFile(null);
-      fetchLogos();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  }
-
-  // Delete logo
   async function deleteLogo(id: number) {
-    try {
-      const logo = logos.find((l) => l.id === id);
-      if (!logo) return toast.error("Logo not found.");
+    const logo = logos.find((l) => l.id === id);
+    if (!logo) return toast.error("Logo not found.");
 
-      const fileName = logo.logo_url.split("/").pop();
-      const { error: storageError } = await supabase.storage.from("logos").remove([fileName!]);
-      if (storageError) throw storageError;
+    const fileName = logo.logo_url.split("/").pop();
+    await supabase.storage.from("logos").remove([fileName!]);
 
-      const { error } = await supabase.from("logos").delete().eq("id", id);
-      if (error) throw error;
+    const { error } = await supabase.from("logos").delete().eq("id", id);
+    if (error) return toast.error(error.message);
 
-      toast.success("Logo Deleted!");
-      fetchLogos();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  }
-
-  // Start editing
-  function startEdit(logo: any) {
-    setEditingId(logo.id);
-    setEditFile(null);
-    setEditPreview(logo.logo_url);
-  }
-
-  // Cancel edit
-  function cancelEdit() {
-    setEditingId(null);
-    setEditFile(null);
-    setEditPreview(null);
-  }
-
-  // Save edited logo
-  async function saveEdit(id: number) {
-    if (!editFile) return toast.error("Please select an image to update.");
-
-    try {
-      const logo = logos.find((l) => l.id === id);
-      if (!logo) return toast.error("Logo not found.");
-
-      // Delete old file
-      const oldFileName = logo.logo_url.split("/").pop();
-      await supabase.storage.from("logos").remove([oldFileName!]);
-
-      // Upload new file
-      const newImageUrl = await uploadImage(editFile);
-
-      // Update DB
-      const { error } = await supabase.from("logos").update({ logo_url: newImageUrl }).eq("id", id);
-      if (error) throw error;
-
-      toast.success("Logo Updated!");
-      setEditingId(null);
-      setEditFile(null);
-      setEditPreview(null);
-      fetchLogos();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  }
-
-  useEffect(() => {
+    toast.success("Logo deleted");
     fetchLogos();
-  }, []);
+  }
+
+  if (!colors) return <div className="text-center py-20">Loading...</div>;
+  const mainColor = colors[0];
+  const getRowColor = (index: number) => colors[index % colors.length];
 
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6">
-      <Toaster position="top-right" />
-      <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center text-pink-600">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6">
+      <Toaster />
+
+      <h1
+        className="text-2xl sm:text-4xl font-bold mb-6 text-center"
+        style={{ color: mainColor.text_color }}
+      >
         Logo Management
       </h1>
 
-      {/* Upload Card */}
-      <div className="bg-white shadow-md rounded-xl p-6 mb-6">
-        <h2 className="text-xl sm:text-2xl font-semibold mb-4 text-gray-700">
-          Add New Logo
-        </h2>
-        <div className="flex flex-col sm:flex-row items-center gap-4">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border border-gray-300 px-3 py-2 rounded-lg w-full sm:w-auto"
-          />
-          <button
-            onClick={handleAddLogo}
-            className="bg-pink-500 text-white py-2 px-5 rounded-lg font-semibold hover:bg-pink-600 transition-transform hover:scale-105"
-          >
-            Add Logo
-          </button>
-        </div>
+      {/* Add Logo Button */}
+      <div className="mb-4 flex justify-end">
+        <Link
+          href="/admin/logo/AddLogoPage"
+          style={{
+            backgroundColor: mainColor.button_hex,
+            color: mainColor.text_color,
+          }}
+          className="px-5 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+              mainColor.button_hover_color)
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+              mainColor.button_hex)
+          }
+        >
+          + Add Logo
+        </Link>
       </div>
 
-      {/* Logos Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {logos.map((logo) => (
-          <div
-            key={logo.id}
-            className="bg-white shadow-md rounded-xl p-4 flex flex-col items-center gap-4"
+      {/* Logos Table */}
+      <div className="overflow-x-auto rounded-2xl shadow-md border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead
+            style={{
+              backgroundColor: mainColor.button_hex,
+              color: mainColor.text_color,
+            }}
           >
-            {editingId === logo.id ? (
-              <>
-                {editPreview && (
-                  <img
-                    src={editPreview}
-                    alt="Preview"
-                    className="w-24 h-24 object-contain rounded-lg"
-                  />
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setEditFile(file);
-                    if (file) setEditPreview(URL.createObjectURL(file));
-                  }}
-                  className="border border-gray-300 px-2 py-1 rounded-lg w-full"
-                />
-                <div className="flex gap-2 w-full">
-                  <button
-                    onClick={() => saveEdit(logo.id)}
-                    className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={cancelEdit}
-                    className="flex-1 bg-gray-400 text-white py-2 rounded-lg hover:bg-gray-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <img
-                  src={logo.logo_url}
-                  alt={`Logo ${logo.id}`}
-                  className="w-24 h-24 object-contain rounded-lg"
-                />
-                <div className="flex gap-2 w-full">
-                  <button
-                    onClick={() => startEdit(logo)}
-                    className="flex-1 bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteLogo(logo.id)}
-                    className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </>
+            <tr>
+              <th className="px-4 py-3 text-left text-sm font-medium">#</th>
+              <th className="px-4 py-3 text-left text-sm font-medium">Logo</th>
+              <th className="px-4 py-3 text-center text-sm font-medium">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-100">
+            {logos.map((logo, index) => {
+              const color = getRowColor(index);
+              return (
+                <tr key={logo.id} className="hover:bg-gray-50 transition">
+                  <td className="px-4 py-3 text-sm text-gray-500">
+                    {index + 1}
+                  </td>
+                  <td className="px-4 py-3">
+                    <img
+                      src={logo.logo_url}
+                      alt={`Logo ${logo.id}`}
+                      className="w-16 h-16 object-contain"
+                    />
+                  </td>
+                  <td className="px-4 py-3 flex justify-center gap-2 sm:gap-3">
+                    <Link
+                      href={`/admin/logo/EditLogoPage/${logo.id}`}
+                      style={{
+                        backgroundColor: color.button_hex,
+                        color: color.text_color,
+                      }}
+                      className="px-3 py-2 rounded-xl shadow hover:opacity-80 transition flex items-center justify-center"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => deleteLogo(logo.id)}
+                      className="px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 shadow flex items-center justify-center"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+            {logos.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-4 py-4 text-center text-gray-500">
+                  No logos found.
+                </td>
+              </tr>
             )}
-          </div>
-        ))}
-        {logos.length === 0 && (
-          <p className="col-span-full text-center text-gray-500">
-            No logos yet.
-          </p>
-        )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
