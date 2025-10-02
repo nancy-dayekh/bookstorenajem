@@ -67,7 +67,10 @@ export default function EditCheckoutPage() {
   }, [checkoutId]);
 
   async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
@@ -164,8 +167,12 @@ export default function EditCheckoutPage() {
 
       toast.success("Checkout Updated!");
       router.push("/admin/checkouts");
-    } catch (err: never) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        toast.error(err.message);
+      } else {
+        toast.error("An unexpected error occurred");
+      }
     }
   }
 
@@ -200,9 +207,7 @@ export default function EditCheckoutPage() {
             type="text"
             placeholder={field.replace("_", " ").toUpperCase()}
             value={form[field]}
-            onChange={(e) =>
-              setForm({ ...form, [field]: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, [field]: e.target.value })}
             className="border p-3 rounded-md w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-400"
           />
         ))}
