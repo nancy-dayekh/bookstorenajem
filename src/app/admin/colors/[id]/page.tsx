@@ -33,10 +33,15 @@ export default function EditColorPage() {
 
   const [loading, setLoading] = useState(false);
 
+  // Fetch color details
   useEffect(() => {
-    if (!colorId) return;
+    if (!colorId) {
+      console.log("❌ Invalid ColorId:", colorId, params);
+      return;
+    }
 
     async function fetchColor() {
+      console.log("🔍 Fetching color with ID:", colorId);
       const { data, error } = await supabase
         .from("colors")
         .select("*")
@@ -44,8 +49,10 @@ export default function EditColorPage() {
         .single();
 
       if (error) {
+        console.error("❌ Fetch error:", error);
         toast.error(error.message);
       } else if (data) {
+        console.log("✅ Fetched color:", data);
         setForm(data);
       }
     }
@@ -53,9 +60,9 @@ export default function EditColorPage() {
     fetchColor();
   }, [colorId]);
 
-  // Minimal update first (only 'name') to ensure connection works
+  // Update color
   async function handleUpdate() {
-    if (!form.name) return toast.error("Name is required!");
+    if (!form.name || !form.hex) return toast.error("Name and Hex color required!");
     if (!colorId) return toast.error("Invalid color ID");
 
     try {
@@ -63,8 +70,15 @@ export default function EditColorPage() {
 
       const updateData = {
         name: form.name,
-        // نقدر نضيف باقي الحقول تدريجياً بعد نجاح هذا التحديث
+        hex: form.hex,
+        text_color: form.text_color,
+        hover_color: form.hover_color,
+        button_hex: form.button_hex,
+        button_text_color: form.button_text_color,
+        button_hover_color: form.button_hover_color,
       };
+
+      console.log("📝 Updating color:", updateData, "With ID:", colorId);
 
       const { error } = await supabase
         .from("colors")
@@ -72,29 +86,32 @@ export default function EditColorPage() {
         .eq("id", colorId);
 
       if (error) {
-        toast.error(error.message);
-        return;
+        console.error("❌ Update error:", error);
+        throw error;
       }
 
       toast.success("✅ Color updated successfully!");
       router.push("/admin/colors");
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        toast.error(err.message);
-      } else {
-        toast.error("Unexpected error occurred");
-      }
+    } catch (err: any) {
+      console.error("❌ Unexpected error:", err);
+      toast.error(err?.message || "Unexpected error occurred");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
       <Toaster position="top-right" />
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center truncate">
+      <h1
+        className="text-2xl sm:text-3xl font-bold mb-6 text-center truncate"
+        style={{ color: form.text_color }}
+      >
         Edit Color
       </h1>
 
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6">
+        {/* Form Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <input
             type="text"
@@ -103,13 +120,66 @@ export default function EditColorPage() {
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             className="border px-3 py-2 rounded-lg focus:ring-2 focus:ring-pink-300 outline-none w-full"
           />
+          <input
+            type="color"
+            value={form.hex}
+            onChange={(e) => setForm({ ...form, hex: e.target.value })}
+            className="w-full h-10 rounded-lg border"
+          />
+          <input
+            type="color"
+            value={form.text_color}
+            onChange={(e) => setForm({ ...form, text_color: e.target.value })}
+            className="w-full h-10 rounded-lg border"
+          />
+          <input
+            type="color"
+            value={form.hover_color}
+            onChange={(e) => setForm({ ...form, hover_color: e.target.value })}
+            className="w-full h-10 rounded-lg border"
+          />
+          <input
+            type="color"
+            value={form.button_hex}
+            onChange={(e) => setForm({ ...form, button_hex: e.target.value })}
+            className="w-full h-10 rounded-lg border"
+          />
+          <input
+            type="color"
+            value={form.button_text_color}
+            onChange={(e) =>
+              setForm({ ...form, button_text_color: e.target.value })
+            }
+            className="w-full h-10 rounded-lg border"
+          />
+          <input
+            type="color"
+            value={form.button_hover_color}
+            onChange={(e) =>
+              setForm({ ...form, button_hover_color: e.target.value })
+            }
+            className="w-full h-10 rounded-lg border"
+          />
         </div>
 
+        {/* Save Button */}
         <div className="flex justify-center sm:justify-end mt-4">
           <button
             onClick={handleUpdate}
             disabled={loading}
+            style={{
+              backgroundColor: form.button_hex,
+              color: form.button_text_color,
+            }}
             className="px-6 py-2 rounded-full font-semibold transition-all duration-300 hover:scale-105 w-full sm:w-auto"
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                form.button_hover_color)
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                form.button_hex)
+            }
           >
             {loading ? "Saving..." : "Update Color"}
           </button>
