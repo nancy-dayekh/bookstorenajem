@@ -45,21 +45,30 @@ export default function EditProductPage() {
 
   // Fetch colors
   async function fetchColors() {
-    const { data, error } = await supabase.from<Color>("colors").select("*").order("id", { ascending: true });
+    const { data, error } = await supabase
+      .from<Color>("colors")
+      .select("*")
+      .order("id", { ascending: true });
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
 
   // Fetch categories
   async function fetchCategories() {
-    const { data, error } = await supabase.from<Category>("categories").select("*");
+    const { data, error } = await supabase
+      .from<Category>("categories")
+      .select("*");
     if (error) toast.error(error.message);
     else setCategories(data || []);
   }
 
   // Fetch product
   async function fetchProduct() {
-    const { data, error } = await supabase.from<Product>("add_products").select("*").eq("id", id).single();
+    const { data, error } = await supabase
+      .from<Product>("add_products")
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error) toast.error(error.message);
     else setForm(data);
   }
@@ -67,16 +76,31 @@ export default function EditProductPage() {
   useEffect(() => {
     fetchColors();
     fetchCategories();
-    fetchProduct();
+
+    async function fetchProductData() {
+      const { data, error } = await supabase
+        .from<Product>("add_products")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) toast.error(error.message);
+      else setForm(data);
+    }
+
+    fetchProductData();
   }, []);
 
   // Upload image
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage
+      .from("products-images")
+      .upload(fileName, file);
     if (uploadError) throw uploadError;
 
-    const { data: publicUrlData } = supabase.storage.from("products-images").getPublicUrl(fileName);
+    const { data: publicUrlData } = supabase.storage
+      .from("products-images")
+      .getPublicUrl(fileName);
     return publicUrlData.publicUrl;
   }
 
@@ -131,12 +155,19 @@ export default function EditProductPage() {
 
   if (!form) return <div className="text-center py-20">Loading...</div>;
 
-  const mainColor = colors[0] || { text_color: "#000", button_hex: "#4f46e5", button_text_color: "#fff" };
+  const mainColor = colors[0] || {
+    text_color: "#000",
+    button_hex: "#4f46e5",
+    button_text_color: "#fff",
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Toaster />
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center" style={{ color: mainColor.text_color }}>
+      <h1
+        className="text-2xl sm:text-3xl font-bold mb-6 text-center"
+        style={{ color: mainColor.text_color }}
+      >
         Edit Product
       </h1>
 
