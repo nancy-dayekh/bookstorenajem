@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,14 +13,9 @@ interface ColorForm {
   text_color: string;
 }
 
-interface Logo {
-  id: number;
-  logo_url: string;
-}
-
 export default function EditLogoPage() {
   const params = useParams();
-  const logoId: string | undefined = params.id as string | undefined;
+  const logoId = params.id;
   const router = useRouter();
 
   const [file, setFile] = useState<File | null>(null);
@@ -32,18 +28,18 @@ export default function EditLogoPage() {
   }, [logoId]);
 
   async function fetchColors() {
-    const { data, error } = await supabase.from<ColorForm>("colors").select("*").order("id");
+    const { data, error } = await supabase.from("colors").select("*").order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
 
   async function fetchLogo(id: string) {
-    const { data, error } = await supabase.from<Logo>("logos").select("*").eq("id", id).single();
+    const { data, error } = await supabase.from("logos").select("*").eq("id", id).single();
     if (error) toast.error(error.message);
-    else setPreview(data?.logo_url || null);
+    else setPreview(data.logo_url);
   }
 
-  async function uploadImage(file: File): Promise<string> {
+  async function uploadImage(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage.from("logos").upload(fileName, file);
     if (uploadError) throw uploadError;
@@ -58,7 +54,7 @@ export default function EditLogoPage() {
       // Delete old file
       if (preview) {
         const oldFileName = preview.split("/").pop();
-        if (oldFileName) await supabase.storage.from("logos").remove([oldFileName]);
+        await supabase.storage.from("logo").remove([oldFileName!]);
       }
 
       const newUrl = await uploadImage(file);
@@ -68,9 +64,8 @@ export default function EditLogoPage() {
 
       toast.success("Logo updated!");
       router.push("/admin/logos/LogoDisplayPage");
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("Unexpected error occurred.");
+    } catch (err: any) {
+      toast.error(err.message);
     }
   }
 
@@ -80,10 +75,7 @@ export default function EditLogoPage() {
   return (
     <div className="max-w-3xl mx-auto p-6">
       <Toaster position="top-right" />
-      <h1
-        className="text-2xl sm:text-4xl font-bold mb-6 text-center"
-        style={{ color: mainColor.text_color }}
-      >
+      <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center" style={{ color: mainColor.text_color }}>
         Edit Logo
       </h1>
 
