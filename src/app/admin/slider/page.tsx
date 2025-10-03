@@ -3,218 +3,211 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Link from "next/link";
 
-type Slide = {
+interface Slide {
   id: number;
   media_url: string;
   media_type: "image" | "video";
-};
+}
 
-export default function HomeSliderManager() {
+interface ColorForm {
+  id?: number;
+  button_hex: string;
+  button_hover_color: string;
+  text_color: string;
+}
+
+export default function DisplaySlidesPage() {
   const [slides, setSlides] = useState<Slide[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [editSlide, setEditSlide] = useState<Slide | null>(null);
-
-  // Fetch slides
-  async function fetchSlides() {
-    const { data, error } = await supabase
-      .from("home_slider")
-      .select("*")
-      .order("id", { ascending: true });
-
-    if (error) toast.error(error.message);
-    else setSlides((data as Slide[]) || []);
-  }
-
-  // Upload file
-  async function uploadFile(file: File) {
-    const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("home-slider")
-      .upload(fileName, file, { upsert: true });
-
-    if (uploadError) throw uploadError;
-
-    const { data: publicUrlData } = supabase.storage
-      .from("home-slider")
-      .getPublicUrl(fileName);
-
-    return {
-      url: publicUrlData.publicUrl,
-      type: file.type.startsWith("video") ? "video" : "image",
-    };
-  }
-
-  async function handleSubmit() {
-    if (!file) return toast.error("Please select an image or video.");
-
-    try {
-      const { url, type } = await uploadFile(file);
-
-      if (editSlide) {
-        const { error } = await supabase
-          .from("home_slider")
-          .update({ media_url: url, media_type: type })
-          .eq("id", editSlide.id);
-        if (error) throw error;
-
-        toast.success("Slide Updated!");
-        setEditSlide(null);
-      } else {
-        const { error } = await supabase
-          .from("home_slider")
-          .insert([{ media_url: url, media_type: type }]);
-        if (error) throw error;
-
-        toast.success("Slide Added!");
-      }
-
-      setFile(null);
-      fetchSlides();
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-    }
-  }
-
-  async function deleteSlide(id: number) {
-    try {
-      const slide = slides.find((s) => s.id === id);
-      if (!slide) return toast.error("Slide not found.");
-
-      const fileName = slide.media_url.split("/").pop();
-      await supabase.storage.from("home-slider").remove([fileName!]);
-
-      const { error } = await supabase.from("home_slider").delete().eq("id", id);
-      if (error) throw error;
-
-      toast.success("Slide Deleted!");
-      fetchSlides();
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-    }
-  }
-
-  function handleEditSlide(slide: Slide) {
-    setEditSlide(slide);
-    setFile(null);
-  }
+  const [colors, setColors] = useState<ColorForm[] | null>(null);
 
   useEffect(() => {
     fetchSlides();
+    fetchColors();
   }, []);
 
+  async function fetchSlides() {
+    const { data, error } = await supabase.from("home_slider").select("*").order("id");
+    if (error) toast.error(error.message);
+    else setSlides(data || []);
+  }
+
+  async function fetchColors() {
+    const { data, error } = await supabase.from("colors").select("*").order("id");
+    if (error) toast.error(error.message);
+    else setColors(data || []);
+  }
+
+  async function handleDelete(id: number) {
+    if (!confirm("Are you sure you want to delete this slide?")) return;
+
+    const { error } = await supabase.from("home_slider").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Slide deleted!");
+      setSlides(slides.filter((slide) => slide.id !== id));
+    }
+  }
+
+  if (!colors) return <div className="text-center py-20">Loading...</div>;
+  const mainColor = colors[0];
+
+  const getRowColor = (index: number) => colors[index % colors.length];
+
   return (
-    <div className="max-w-4xl mx-auto px-3 sm:px-6 py-6">
+    <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6">
       <Toaster position="top-right" />
-      <h1 className="text-2xl sm:text-4xl font-bold mb-6 text-center text-pink-600">
-        Home Slider Management
+
+      <h1
+        className="text-2xl sm:text-4xl font-bold mb-4 text-center"
+        style={{ color: mainColor.text_color }}
+      >
+        Home Slides
       </h1>
 
-      {/* Add/Edit Form */}
-      <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-6">
-        <h2 className="text-lg sm:text-2xl font-semibold mb-3 text-gray-700">
-          {editSlide ? "Edit Slide" : "Add New Slide"}
-        </h2>
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <input
-            type="file"
-            accept="image/*,video/*"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="border px-3 py-2 rounded-lg w-full sm:w-auto"
-          />
-          <button
-            onClick={handleSubmit}
-            className="bg-pink-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-pink-600 transition-transform hover:scale-105 w-full sm:w-auto"
-          >
-            {editSlide ? "Update Slide" : "Add Slide"}
-          </button>
-          {editSlide && (
-            <button
-              onClick={() => setEditSlide(null)}
-              className="bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 w-full sm:w-auto"
-            >
-              Cancel Edit
-            </button>
-          )}
-        </div>
+      {/* Add Slide Button */}
+      <div className="mb-4 flex justify-end">
+        <Link
+          href="/admin/slider/AddSlidePage"
+          style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
+          className="px-5 py-2 rounded-lg font-semibold transition-transform hover:scale-105 text-sm sm:text-base"
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+              mainColor.button_hover_color)
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+              mainColor.button_hex)
+          }
+        >
+          + Add Slide
+        </Link>
       </div>
 
-      {/* Slides List */}
-      <div className="bg-white shadow-md rounded-xl overflow-hidden">
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="min-w-full text-sm sm:text-base">
-            <thead className="bg-pink-100">
+      {/* Desktop Table */}
+      <div className="hidden sm:block overflow-x-auto bg-white shadow-md rounded-xl">
+        <table className="min-w-full text-sm sm:text-base">
+          <thead style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}>
+            <tr>
+              <th className="p-3 text-left">ID</th>
+              <th className="p-3 text-left">Preview</th>
+              <th className="p-3 text-left">Type</th>
+              <th className="p-3 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {slides.length === 0 ? (
               <tr>
-                <th className="p-3 text-left text-gray-700">ID</th>
-                <th className="p-3 text-left text-gray-700">Preview</th>
-                <th className="p-3 text-left text-gray-700">Actions</th>
+                <td colSpan={4} className="p-3 text-center text-gray-500">
+                  No slides yet.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {slides.map((slide) => (
+            ) : (
+              slides.map((slide, index) => (
                 <tr key={slide.id} className="border-b hover:bg-gray-50">
                   <td className="p-3">{slide.id}</td>
                   <td className="p-3">
                     {slide.media_type === "video" ? (
-                      <video src={slide.media_url} controls className="w-40 h-28 object-cover rounded" />
+                      <video
+                        src={slide.media_url}
+                        controls
+                        className="w-full sm:w-40 h-48 sm:h-28 object-cover rounded"
+                      />
                     ) : (
-                      <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-40 h-28 object-cover rounded" />
+                      <img
+                        src={slide.media_url}
+                        alt={`Slide ${slide.id}`}
+                        className="w-full sm:w-40 h-48 sm:h-28 object-cover rounded"
+                      />
                     )}
                   </td>
-                  <td className="p-3 flex gap-2">
-                    <button
-                      onClick={() => handleEditSlide(slide)}
-                      className="px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  <td className="p-3 capitalize">{slide.media_type}</td>
+                  <td className="p-3 flex gap-2 flex-wrap">
+                    <Link
+                      href={`/admin/slider/EditSlider/${slide.id}`}
+                      style={{
+                        backgroundColor: mainColor.button_hex,
+                        color: mainColor.text_color,
+                      }}
+                      className="px-3 py-1 rounded hover:opacity-80 text-sm sm:text-base"
+                      onMouseEnter={(e) =>
+                        ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+                          mainColor.button_hover_color)
+                      }
+                      onMouseLeave={(e) =>
+                        ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+                          mainColor.button_hex)
+                      }
                     >
                       Edit
-                    </button>
+                    </Link>
                     <button
-                      onClick={() => deleteSlide(slide.id)}
-                      className="px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                      onClick={() => handleDelete(slide.id)}
+                      className="px-3 py-1 rounded bg-red-500 text-white hover:opacity-80 text-sm sm:text-base"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
-              ))}
-              {slides.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="p-3 text-center text-gray-500">
-                    No slides yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
 
-        {/* Mobile Cards */}
-        <div className="sm:hidden flex flex-col gap-4 p-4">
-          {slides.length === 0 && <p className="text-center text-gray-500">No slides yet.</p>}
-          {slides.map((slide) => (
-            <div key={slide.id} className="border rounded-lg shadow-sm p-3 flex flex-col gap-3">
-              {slide.media_type === "video" ? (
-                <video src={slide.media_url} controls className="w-full h-48 object-cover rounded" />
-              ) : (
-                <img src={slide.media_url} alt={`Slide ${slide.id}`} className="w-full h-48 object-cover rounded" />
-              )}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEditSlide(slide)}
-                  className="flex-1 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => deleteSlide(slide.id)}
-                  className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600"
-                >
-                  Delete
-                </button>
-              </div>
+      {/* Mobile Cards */}
+      <div className="sm:hidden flex flex-col gap-4 mt-6">
+        {slides.map((slide) => (
+          <div
+            key={slide.id}
+            className="border rounded-lg shadow-sm p-3 flex flex-col gap-2"
+          >
+            {slide.media_type === "video" ? (
+              <video
+                src={slide.media_url}
+                controls
+                className="w-full h-48 object-cover rounded"
+              />
+            ) : (
+              <img
+                src={slide.media_url}
+                alt={`Slide ${slide.id}`}
+                className="w-full h-48 object-cover rounded"
+              />
+            )}
+            <div className="flex justify-between text-sm font-medium">
+              <span>ID: {slide.id}</span>
+              <span>Type: {slide.media_type}</span>
             </div>
-          ))}
-        </div>
+            <div className="flex justify-end gap-2 mt-2 flex-wrap">
+              <Link
+                href={`/admin/slider/EditSlider/${slide.id}`}
+                style={{
+                  backgroundColor: mainColor.button_hex,
+                  color: mainColor.text_color,
+                }}
+                className="px-3 py-1 rounded hover:opacity-80 text-sm"
+                onMouseEnter={(e) =>
+                  ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+                    mainColor.button_hover_color)
+                }
+                onMouseLeave={(e) =>
+                  ((e.currentTarget as HTMLAnchorElement).style.backgroundColor =
+                    mainColor.button_hex)
+                }
+              >
+                Edit
+              </Link>
+              <button
+                onClick={() => handleDelete(slide.id)}
+                className="px-3 py-1 rounded bg-red-500 text-white hover:opacity-80 text-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
