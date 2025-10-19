@@ -160,26 +160,34 @@ export default function AdminDashboard() {
           >
             👤
           </button>
+
           {profileOpen && (
             <div
-              className="absolute right-0 mt-2 w-48 border rounded-xl shadow-lg z-10"
+              className="absolute right-0 mt-2 w-52 border rounded-xl shadow-lg z-10"
               style={{
                 backgroundColor: mainColor.hex,
                 color: mainColor.text_color,
               }}
             >
-              <div className="px-4 py-3 text-sm">
+              <div className="px-4 py-3 text-sm border-b border-gray-200">
                 Signed in as <strong>{userName}</strong>
               </div>
+
+              {/* Edit Profile Button */}
+              <button
+                onClick={() => (window.location.href = "/admin/edit-profile")}
+                className="w-full text-left px-4 py-2 hover:opacity-80"
+              >
+                ✏️ Edit Profile
+              </button>
+
+              {/* Logout Button */}
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2"
-                style={{
-                  color: "red",
-                  backgroundColor: mainColor.hover_color || "transparent",
-                }}
+                className="w-full text-left px-4 py-2 hover:opacity-80"
+                style={{ color: "red" }}
               >
-                Logout
+                🚪 Logout
               </button>
             </div>
           )}
@@ -206,7 +214,9 @@ export default function AdminDashboard() {
               <p className="font-semibold uppercase tracking-wide">
                 {card.title}
               </p>
-              <p className="mt-3 text-3xl sm:text-5xl font-bold">{card.value}</p>
+              <p className="mt-3 text-3xl sm:text-5xl font-bold">
+                {card.value}
+              </p>
             </div>
           );
         })}
@@ -243,15 +253,33 @@ export default function AdminDashboard() {
         <h2 className="text-lg font-semibold mb-4">Revenue by Month</h2>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={monthlyData}>
-            <CartesianGrid stroke={mainColor.text_color} strokeDasharray="4 4" />
-            <XAxis dataKey="month" stroke={mainColor.text_color} tick={{ fill: mainColor.text_color }} />
-            <YAxis stroke={mainColor.text_color} tick={{ fill: mainColor.text_color }} />
+            <CartesianGrid
+              stroke={mainColor.text_color}
+              strokeDasharray="4 4"
+            />
+            <XAxis
+              dataKey="month"
+              stroke={mainColor.text_color}
+              tick={{ fill: mainColor.text_color }}
+            />
+            <YAxis
+              stroke={mainColor.text_color}
+              tick={{ fill: mainColor.text_color }}
+            />
             <Tooltip
-              contentStyle={{ backgroundColor: mainColor.hex, color: mainColor.text_color, borderRadius: "12px" }}
+              contentStyle={{
+                backgroundColor: mainColor.hex,
+                color: mainColor.text_color,
+                borderRadius: "12px",
+              }}
               itemStyle={{ color: mainColor.text_color }}
               labelStyle={{ color: mainColor.text_color }}
             />
-            <Bar dataKey="revenue" fill={mainColor.hover_color || "#ec4899"} radius={[12, 12, 0, 0]} />
+            <Bar
+              dataKey="revenue"
+              fill={mainColor.hover_color || "#ec4899"}
+              radius={[12, 12, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -262,8 +290,14 @@ export default function AdminDashboard() {
         style={{ backgroundColor: mainColor.hex, color: mainColor.text_color }}
       >
         <div className="absolute inset-0 rounded-full bg-white opacity-0 hover:opacity-10 transition-opacity duration-300 pointer-events-none"></div>
-        <h2 className="text-lg sm:text-xl font-semibold mb-4 relative z-10">🏆 Top Selling Products</h2>
-        <ResponsiveContainer width="100%" height={300} className="relative z-10">
+        <h2 className="text-lg sm:text-xl font-semibold mb-4 relative z-10">
+          🏆 Top Selling Products
+        </h2>
+        <ResponsiveContainer
+          width="100%"
+          height={300}
+          className="relative z-10"
+        >
           <PieChart>
             <Pie
               data={topProducts}
@@ -272,16 +306,34 @@ export default function AdminDashboard() {
               cx="50%"
               cy="50%"
               outerRadius={120}
-              label={({ name, percent }) => `${name} ${(Number(percent) * 100).toFixed(0)}%`}
+              label={({ name, percent }) =>
+                `${name} ${(Number(percent) * 100).toFixed(0)}%`
+              }
             >
               {topProducts.map((_, index) => {
-                const colorsPalette = ["#222222", "#555555", "#999999", "#ffffff", "#f5f5f5"];
-                return <Cell key={index} fill={colorsPalette[index % colorsPalette.length]} stroke="#000" />;
+                const colorsPalette = [
+                  "#222222",
+                  "#555555",
+                  "#999999",
+                  "#ffffff",
+                  "#f5f5f5",
+                ];
+                return (
+                  <Cell
+                    key={index}
+                    fill={colorsPalette[index % colorsPalette.length]}
+                    stroke="#000"
+                  />
+                );
               })}
             </Pie>
             <Legend wrapperStyle={{ color: mainColor.text_color }} />
             <Tooltip
-              contentStyle={{ backgroundColor: mainColor.hex, color: mainColor.text_color, borderRadius: "12px" }}
+              contentStyle={{
+                backgroundColor: mainColor.hex,
+                color: mainColor.text_color,
+                borderRadius: "12px",
+              }}
               itemStyle={{ color: mainColor.text_color }}
               labelStyle={{ color: mainColor.text_color }}
             />

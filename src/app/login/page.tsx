@@ -3,33 +3,42 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import bcrypt from "bcryptjs";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false); // toggle password
   const router = useRouter();
 
   async function handleLogin() {
-    const { data, error } = await supabase
-      .from("admins")
-      .select("*")
-      .eq("email", email)
-      .eq("password", password)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from("admins")
+        .select("*")
+        .eq("email", email)
+        .single();
 
-    if (error || !data) return toast.error("Invalid login credentials");
+      if (error || !data) return toast.error("Invalid login credentials");
 
-    // ✅ خزّني session
-    localStorage.setItem(
-      "admin-auth",
-      JSON.stringify({
-        id: data.id,
-        email: data.email,
-      })
-    );
+      const isValid = await bcrypt.compare(password, data.password);
+      if (!isValid) return toast.error("Invalid login credentials");
 
-    toast.success("Welcome back!");
-    router.push("/admin"); // go to dashboard
+      localStorage.setItem(
+        "admin-auth",
+        JSON.stringify({
+          id: data.id,
+          email: data.email,
+        })
+      );
+
+      toast.success("Welcome back!");
+      router.push("/admin");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      toast.error(err.message);
+    }
   }
 
   return (
@@ -48,13 +57,22 @@ export default function LoginPage() {
           className="w-full mb-4 px-4 py-2 border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm sm:text-base"
         />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-6 px-4 py-2 border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm sm:text-base"
-        />
+        {/* Password input with toggle */}
+        <div className="relative mb-6">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-2 border border-pink-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400 text-sm sm:text-base pr-10"
+          />
+          <span
+            className="absolute right-3 top-2.5 cursor-pointer text-gray-500 hover:text-black"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? <FaEyeSlash /> : <FaEye />}
+          </span>
+        </div>
 
         <button
           onClick={handleLogin}
