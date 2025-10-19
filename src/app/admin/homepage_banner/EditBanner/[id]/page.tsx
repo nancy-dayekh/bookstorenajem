@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -24,9 +23,9 @@ export default function EditBannerPage() {
 
   const router = useRouter();
   const params = useParams();
-  const bannerId = params?.id ? parseInt(params.id, 10) : null;
+  const bannerId =
+    params?.id && !Array.isArray(params.id) ? parseInt(params.id, 10) : null;
 
-  // Fetch colors and banner
   useEffect(() => {
     if (!bannerId || isNaN(bannerId)) {
       toast.error("Invalid Banner ID");
@@ -55,13 +54,13 @@ export default function EditBannerPage() {
         setDescription(bannerData.description);
         setImagePreview(bannerData.image_url);
       }
+
       setLoading(false);
     }
 
     loadData();
   }, [bannerId]);
 
-  // Upload image to Supabase storage
   async function uploadImage(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -76,7 +75,6 @@ export default function EditBannerPage() {
     return data.publicUrl;
   }
 
-  // Handle banner update
   const handleUpdate = async () => {
     if (!bannerId) return toast.error("Invalid Banner ID");
     if (!title.trim() || !description.trim())
@@ -92,6 +90,7 @@ export default function EditBannerPage() {
         .eq("id", bannerId);
 
       if (error) throw error;
+
       toast.success("Banner updated!");
       router.push("/admin/homepage_banner");
     } catch (err: any) {
