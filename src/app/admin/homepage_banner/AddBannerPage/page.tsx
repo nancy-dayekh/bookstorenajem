@@ -81,7 +81,6 @@ export default function AddBannerPage() {
     <div className="flex justify-center items-center min-h-screen bg-gray-50 p-6">
       <Toaster position="top-right" />
       <div className="w-full max-w-3xl bg-white rounded-3xl shadow-lg p-8 transition-all duration-300 hover:shadow-xl border border-gray-100">
-        {/* Title */}
         <h1
           className="text-4xl font-extrabold text-center mb-8 tracking-wide"
           style={{ color: mainColor.text_color }}
@@ -89,9 +88,7 @@ export default function AddBannerPage() {
           Add New Banner
         </h1>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title Input */}
           <div>
             <label className="block mb-2 text-gray-700 font-semibold">Title</label>
             <input
@@ -103,11 +100,8 @@ export default function AddBannerPage() {
             />
           </div>
 
-          {/* Description Input */}
           <div>
-            <label className="block mb-2 text-gray-700 font-semibold">
-              Description
-            </label>
+            <label className="block mb-2 text-gray-700 font-semibold">Description</label>
             <textarea
               placeholder="Enter banner description"
               value={description}
@@ -117,11 +111,8 @@ export default function AddBannerPage() {
             />
           </div>
 
-          {/* Image Upload */}
           <div>
-            <label className="block mb-2 text-gray-700 font-semibold">
-              Upload Image
-            </label>
+            <label className="block mb-2 text-gray-700 font-semibold">Upload Image</label>
             <input
               type="file"
               accept="image/*"
@@ -134,7 +125,6 @@ export default function AddBannerPage() {
             />
           </div>
 
-          {/* Image Preview */}
           {imagePreview && (
             <div className="flex justify-center mt-4">
               <Image
@@ -147,7 +137,6 @@ export default function AddBannerPage() {
             </div>
           )}
 
-          {/* Submit Button */}
           <div className="flex justify-center pt-6">
             <button
               type="submit"
@@ -161,7 +150,7 @@ export default function AddBannerPage() {
                   mainColor.button_hover_color)
               }
               onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLButtonButtonElement).style.backgroundColor =
+                ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
                   mainColor.button_hex)
               }
             >
