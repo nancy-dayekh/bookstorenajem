@@ -6,13 +6,28 @@ import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Image from "next/image";
 
+interface ColorForm {
+  id?: number;
+  button_hex: string;
+  button_hover_color: string;
+  text_color: string;
+}
+
 export default function TodayOrdersLive() {
   const [todayOrders, setTodayOrders] = useState<any[]>([]);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [colors, setColors] = useState<ColorForm[] | null>(null);
 
   const today = new Date().toISOString().split("T")[0];
 
-  // ✅ Wrap in useCallback to avoid ESLint warning
+  // Fetch colors from DB
+  const fetchColors = useCallback(async () => {
+    const { data, error } = await supabase.from("colors").select("*").order("id");
+    if (error) toast.error(error.message);
+    else setColors(data || []);
+  }, []);
+
+  // Fetch today's orders
   const fetchTodayOrders = useCallback(async () => {
     const { data, error } = await supabase
       .from("checkouts")
@@ -46,6 +61,7 @@ export default function TodayOrdersLive() {
   };
 
   useEffect(() => {
+    fetchColors();
     fetchTodayOrders();
 
     const subscription = supabase
@@ -83,23 +99,37 @@ export default function TodayOrdersLive() {
     return () => {
       supabase.removeChannel(subscription);
     };
-  }, [today, fetchTodayOrders]);
+  }, [today, fetchTodayOrders, fetchColors]);
 
   const toggleDetails = (orderId: number) => {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
   };
 
+  if (!colors) return <div className="text-center py-20">Loading colors...</div>;
+  const mainColor = colors[0];
+
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-4 sm:py-6">
       <Toaster position="top-right" />
-      {/* ✅ Escaped apostrophe */}
-      <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-center text-pink-600">
-        Today&apos;s Orders (Live)
+
+      <h1
+        className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-center"
+        style={{ color: mainColor.text_color }}
+      >
+        Today's Orders (Live)
       </h1>
 
-      <div className="overflow-x-auto shadow-md rounded-xl border border-gray-200">
+      <div
+        className="overflow-x-auto shadow-md rounded-xl border"
+        style={{ borderColor: mainColor.button_hex }}
+      >
         <table className="min-w-full divide-y divide-gray-200 text-sm sm:text-base">
-          <thead className="bg-pink-100 text-gray-700">
+          <thead
+            style={{
+              backgroundColor: mainColor.button_hex,
+              color: mainColor.text_color,
+            }}
+          >
             <tr>
               <th className="px-3 sm:px-4 py-2 sm:py-3 text-left">Customer</th>
               <th className="px-3 sm:px-4 py-2 sm:py-3 text-left">Address</th>
@@ -109,7 +139,10 @@ export default function TodayOrdersLive() {
           </thead>
           <tbody>
             {todayOrders.map((order) => (
-              <tr key={order.id} className="bg-white hover:bg-pink-50 cursor-pointer">
+              <tr
+                key={order.id}
+                className="bg-white hover:opacity-90 cursor-pointer transition"
+              >
                 <td
                   colSpan={4}
                   onClick={() => toggleDetails(order.id)}
@@ -123,7 +156,10 @@ export default function TodayOrdersLive() {
                   </div>
 
                   {expandedOrderId === order.id && (
-                    <div className="mt-4 bg-pink-50 p-3 rounded-md">
+                    <div
+                      className="mt-4 p-3 rounded-md"
+                      style={{ backgroundColor: mainColor.button_hover_color, color: mainColor.text_color }}
+                    >
                       <h3 className="font-semibold mb-2">Product Details:</h3>
                       <div className="space-y-3">
                         {order.items?.map((item: any) => (
@@ -131,7 +167,6 @@ export default function TodayOrdersLive() {
                             key={item.id}
                             className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6"
                           >
-                            {/* ✅ Use Next.js <Image /> instead of <img> */}
                             <Image
                               src={item.product?.image || "/placeholder.png"}
                               alt={item.product?.name ?? "Product image"}
