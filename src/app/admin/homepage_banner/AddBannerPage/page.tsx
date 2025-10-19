@@ -68,7 +68,7 @@ export default function AddBannerPage() {
       if (error) throw error;
 
       toast.success("🎉 Banner added successfully!");
-      setTimeout(() => router.push("/admin/banner/DisplayBanners"), 1500);
+      setTimeout(() => router.push("/admin/homepage_banner"), 1500);
     } catch (err: any) {
       toast.error(err.message);
     }
