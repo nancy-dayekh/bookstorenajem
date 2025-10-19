@@ -1,186 +1,114 @@
-'use client';
-
-import { useState, useEffect, ChangeEvent } from "react";
+"use client";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import { Trash2, Edit2, Plus } from "lucide-react";
 
 type Product = { id: number; name: string };
 type MultiImage = { id: number; products_id: number; image_path: string; product_name?: string };
+type ColorForm = { button_hex: string; text_color: string; button_hover_color: string };
 
-export default function CreateMultiImage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productsId, setProductsId] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+export default function MultiImagesPage() {
   const [multiImages, setMultiImages] = useState<MultiImage[]>([]);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [colors, setColors] = useState<ColorForm[] | null>(null);
 
-  // Fetch products
-  async function fetchProducts() {
-    const { data, error } = await supabase.from("add_products").select("id,name");
-    if (error) return toast.error("Failed to load products");
-    setProducts(data || []);
-  }
+  useEffect(() => {
+    async function fetchColors() {
+      const { data } = await supabase.from("colors").select("*").order("id");
+      setColors(data || []);
+    }
 
-  // Fetch multi-images and map product names
-  async function fetchMultiImages() {
-    const { data: images, error: imagesError } = await supabase
-      .from("multiimages")
-      .select("*")
-      .order("id", { ascending: false });
-    if (imagesError) return toast.error("Failed to load images");
+    async function fetchData() {
+      const { data: prod } = await supabase.from("add_products").select("id,name");
+      setProducts(prod || []);
 
-    const { data: productsData, error: productsError } = await supabase
-      .from("add_products")
-      .select("id,name");
-    if (productsError) return toast.error("Failed to load products");
+      const { data: imgs } = await supabase.from("multiimages").select("*").order("id", { ascending: false });
+      const mapped = imgs?.map((img: MultiImage) => ({
+        ...img,
+        product_name: prod?.find(p => p.id === img.products_id)?.name || "Unknown",
+      })) || [];
+      setMultiImages(mapped);
+    }
 
-    const mapped: MultiImage[] = images?.map((img: MultiImage) => ({
-      ...img,
-      product_name: productsData?.find((p) => p.id === img.products_id)?.name || "Unknown",
-    })) || [];
+    fetchColors();
+    fetchData();
+  }, []);
 
-    setMultiImages(mapped);
-  }
-
-  useEffect(() => { fetchProducts(); fetchMultiImages(); }, []);
-
-  // Upload image to Supabase
-  async function uploadImage(file: File) {
-    const fileName = `multiimages/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
-    if (uploadError) throw uploadError;
-
-    const { data: publicUrlData } = supabase.storage.from("products-images").getPublicUrl(fileName);
-    return publicUrlData.publicUrl;
-  }
-
-  // Create or update
-  async function handleCreateOrUpdate() {
-    if (!productsId || (!file && !previewImage)) return toast.error("Please select a product and choose an image");
-    try {
-      const imageUrl = file ? await uploadImage(file) : previewImage!;
-      if (editingId) {
-        const { error } = await supabase
-          .from("multiimages")
-          .update({ products_id: Number(productsId), image_path: imageUrl })
-          .eq("id", editingId);
-        if (error) throw error;
-        toast.success("Image updated successfully!");
-        setEditingId(null); setPreviewImage(null);
-      } else {
-        const { error } = await supabase
-          .from("multiimages")
-          .insert([{ products_id: Number(productsId), image_path: imageUrl }]);
-        if (error) throw error;
-        toast.success("Image added successfully!");
-      }
-      setProductsId(""); setFile(null); fetchMultiImages();
-    } catch (err: unknown) {
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("Unknown error occurred");
+  async function deleteImage(id: number) {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+    const { error } = await supabase.from("multiimages").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Image deleted successfully!");
+      setMultiImages(prev => prev.filter(img => img.id !== id));
     }
   }
 
-  // Delete
-  async function handleDelete(id: number) {
-    if (!confirm("Are you sure you want to delete this image?")) return;
-    const { error } = await supabase.from("multiimages").delete().eq("id", id);
-    if (error) return toast.error("Failed to delete");
-    toast.success("Deleted successfully!");
-    fetchMultiImages();
-  }
-
-  // Edit
-  function handleEdit(image: MultiImage) {
-    setEditingId(image.id); setProductsId(String(image.products_id));
-    setPreviewImage(image.image_path); setFile(null);
-  }
-
-  // File change
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const selectedFile = e.target.files?.[0] || null;
-    setFile(selectedFile);
-    if (selectedFile) setPreviewImage(URL.createObjectURL(selectedFile));
-  }
+  if (!colors) return <div className="text-center py-20">Loading...</div>;
+  const mainColor = colors[0];
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-xl">
-      <Toaster position="top-right" />
-      <h2 className="text-2xl font-bold mb-6 text-center">{editingId ? "Edit MultiImage" : "Add New MultiImage"}</h2>
-
-      {/* Form */}
-      <div className="flex flex-col gap-4">
-        <select
-          value={productsId}
-          onChange={(e) => setProductsId(e.target.value)}
-          className="w-full border border-pink-200 bg-pink-50 px-4 py-3 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none text-gray-700"
+    <div className="max-w-5xl mx-auto p-4 sm:p-6">
+      <Toaster />
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl sm:text-3xl font-extrabold" style={{ color: mainColor.text_color }}>
+          MultiImages
+        </h1>
+        <Link
+          href="/admin/multiImages/addmultiimage"
+          className="flex items-center gap-2 px-5 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
+          style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
+          onMouseEnter={e => ((e.currentTarget as HTMLAnchorElement).style.backgroundColor = mainColor.button_hover_color)}
+          onMouseLeave={e => ((e.currentTarget as HTMLAnchorElement).style.backgroundColor = mainColor.button_hex)}
         >
-          <option value="">Select Product</option>
-          {products.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
-        </select>
-
-        <div className="relative">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="w-full border border-pink-200 bg-pink-50 px-4 py-3 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none text-gray-700"
-          />
-          {previewImage && (
-            <Image
-              src={previewImage}
-              alt="Preview"
-              width={64}
-              height={64}
-              className="absolute right-4 top-1/2 -translate-y-1/2 object-cover rounded border border-gray-300"
-            />
-          )}
-        </div>
-
-        <button
-          onClick={handleCreateOrUpdate}
-          className="w-full bg-pink-400 hover:bg-pink-500 text-white py-3 rounded-lg font-semibold transition duration-200"
-        >
-          {editingId ? "Update Image" : "Add Image"}
-        </button>
+          <Plus className="w-4 h-4" /> Add Image
+        </Link>
       </div>
 
-      {/* Table */}
-      <div className="mt-8 overflow-x-auto">
-        <table className="w-full border border-gray-200 text-left min-w-[600px]">
-          <thead className="bg-pink-50">
+      <div className="overflow-x-auto rounded-2xl shadow-md border border-gray-200">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}>
             <tr>
-              <th className="px-4 py-3 border">ID</th>
-              <th className="px-4 py-3 border">Product</th>
-              <th className="px-4 py-3 border">Image</th>
-              <th className="px-4 py-3 border">Actions</th>
+              <th className="px-6 py-3 text-left text-sm font-medium">#</th>
+              <th className="px-6 py-3 text-left text-sm font-medium">Product</th>
+              <th className="px-6 py-3 text-left text-sm font-medium">Image</th>
+              <th className="px-6 py-3 text-center text-sm font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {multiImages.map((img) => (
-              <tr key={img.id}>
-                <td className="px-4 py-3 border">{img.id}</td>
-                <td className="px-4 py-3 border">{img.product_name}</td>
-                <td className="px-4 py-3 border">
-                  <Image
-                    src={img.image_path}
-                    alt="product"
-                    width={96}
-                    height={96}
-                    className="object-cover rounded"
-                  />
-                </td>
-                <td className="px-4 py-3 border flex flex-col sm:flex-row sm:gap-2">
-                  <button onClick={() => handleEdit(img)} className="mb-1 sm:mb-0 px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition duration-200">Edit</button>
-                  <button onClick={() => handleDelete(img.id)} className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition duration-200">Delete</button>
-                </td>
-              </tr>
-            ))}
+          <tbody className="bg-white divide-y divide-gray-100">
+            {multiImages.map((img, index) => {
+              const color = colors[index % colors.length];
+              return (
+                <tr key={img.id} className="hover:bg-gray-50 transition">
+                  <td className="px-6 py-4 text-sm text-gray-500">{index + 1}</td>
+                  <td className="px-6 py-4 text-sm text-gray-800 font-medium">{img.product_name}</td>
+                  <td className="px-6 py-4">
+                    <Image src={img.image_path} alt="product" width={96} height={96} className="rounded object-cover"/>
+                  </td>
+                  <td className="px-6 py-4 flex justify-center gap-3">
+                    <Link
+                      href={`/admin/multiImages/EditMultiimage/${img.id}`}
+                      style={{ backgroundColor: color.button_hex, color: color.text_color }}
+                      className="px-4 py-2 rounded-xl shadow hover:opacity-80 transition flex items-center justify-center gap-1"
+                    >
+                      <Edit2 className="w-4 h-4"/> Edit
+                    </Link>
+                    <button
+                      onClick={() => deleteImage(img.id)}
+                      className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 shadow flex items-center justify-center"
+                    >
+                      <Trash2 className="w-4 h-4"/>
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
             {multiImages.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center py-4 text-gray-500">No images found</td>
+                <td colSpan={4} className="py-4 text-center text-gray-500">No images found</td>
               </tr>
             )}
           </tbody>
