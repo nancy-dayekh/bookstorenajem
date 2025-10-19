@@ -125,7 +125,7 @@ export default function TodayOrdersLive() {
         className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-center"
         style={{ color: mainColor.text_color }}
       >
-        Today's Orders (Live){" "}
+        Today&apos;s Orders (Live)
       </h1>
 
       <div
