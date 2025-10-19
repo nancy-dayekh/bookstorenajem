@@ -22,7 +22,10 @@ export default function TodayOrdersLive() {
 
   // Fetch colors from DB
   const fetchColors = useCallback(async () => {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }, []);
@@ -83,14 +86,19 @@ export default function TodayOrdersLive() {
 
             await saveNotification(newOrder);
 
-            if (typeof window !== "undefined" && Notification.permission === "granted") {
+            if (
+              typeof window !== "undefined" &&
+              Notification.permission === "granted"
+            ) {
               new Notification("New Order", {
                 body: `${newOrder.first_name} ${newOrder.last_name} | Total: $${newOrder.total}`,
               });
             }
 
             const audio = new Audio("/notification.mp3");
-            audio.play().catch(() => console.log("Autoplay blocked by browser"));
+            audio
+              .play()
+              .catch(() => console.log("Autoplay blocked by browser"));
           }
         }
       )
@@ -105,7 +113,8 @@ export default function TodayOrdersLive() {
     setExpandedOrderId(expandedOrderId === orderId ? null : orderId);
   };
 
-  if (!colors) return <div className="text-center py-20">Loading colors...</div>;
+  if (!colors)
+    return <div className="text-center py-20">Loading colors...</div>;
   const mainColor = colors[0];
 
   return (
@@ -116,7 +125,7 @@ export default function TodayOrdersLive() {
         className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-center"
         style={{ color: mainColor.text_color }}
       >
-        Today's Orders (Live)
+        Today's Orders (Live){" "}
       </h1>
 
       <div
@@ -149,7 +158,9 @@ export default function TodayOrdersLive() {
                   className="px-2 sm:px-4 py-2"
                 >
                   <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
-                    <span>{order.first_name} {order.last_name}</span>
+                    <span>
+                      {order.first_name} {order.last_name}
+                    </span>
                     <span>{order.address}</span>
                     <span>{order.phone}</span>
                     <span>${order.total}</span>
@@ -158,7 +169,10 @@ export default function TodayOrdersLive() {
                   {expandedOrderId === order.id && (
                     <div
                       className="mt-4 p-3 rounded-md"
-                      style={{ backgroundColor: mainColor.button_hover_color, color: mainColor.text_color }}
+                      style={{
+                        backgroundColor: mainColor.button_hover_color,
+                        color: mainColor.text_color,
+                      }}
                     >
                       <h3 className="font-semibold mb-2">Product Details:</h3>
                       <div className="space-y-3">
@@ -175,7 +189,9 @@ export default function TodayOrdersLive() {
                               className="rounded-md object-cover"
                             />
                             <div>
-                              <p className="font-medium">{item.product?.name ?? "Unnamed Product"}</p>
+                              <p className="font-medium">
+                                {item.product?.name ?? "Unnamed Product"}
+                              </p>
                               <p>Size: {item.size}</p>
                               <p>Qty: {item.quantity}</p>
                               <p>Price: ${item.product?.price ?? 0}</p>
