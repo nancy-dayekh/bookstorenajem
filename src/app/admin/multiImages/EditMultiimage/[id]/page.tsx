@@ -8,7 +8,6 @@ import { useParams, useRouter } from "next/navigation";
 
 type Product = { id: number; name: string };
 type ColorForm = { button_hex: string; text_color: string; button_hover_color: string };
-type MultiImage = { id: number; products_id: number; image_path: string };
 
 export default function EditPage() {
   const router = useRouter();
