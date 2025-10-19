@@ -25,6 +25,7 @@ export default function EditBannerPage() {
   const params = useParams();
   const bannerId = params?.id ? parseInt(params.id, 10) : null;
 
+  // Fetch colors and banner
   useEffect(() => {
     if (!bannerId || isNaN(bannerId)) {
       toast.error("Invalid Banner ID");
@@ -32,8 +33,8 @@ export default function EditBannerPage() {
       return;
     }
 
-    const loadData = async () => {
-      // fetch colors
+    async function loadData() {
+      // Fetch colors
       const { data: colorData, error: colorError } = await supabase
         .from("colors")
         .select("*")
@@ -41,7 +42,7 @@ export default function EditBannerPage() {
       if (colorError) toast.error(colorError.message);
       else setColors(colorData || []);
 
-      // fetch banner
+      // Fetch banner
       const { data: bannerData, error: bannerError } = await supabase
         .from("homepage_banner")
         .select("*")
@@ -54,17 +55,17 @@ export default function EditBannerPage() {
         setImagePreview(bannerData.image_url);
       }
       setLoading(false);
-    };
+    }
 
     loadData();
   }, [bannerId]);
 
+  // Upload image to Supabase storage
   async function uploadImage(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from("homepage_banner")
       .upload(fileName, file);
-
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage
@@ -74,9 +75,11 @@ export default function EditBannerPage() {
     return data.publicUrl;
   }
 
+  // Handle banner update
   const handleUpdate = async () => {
     if (!bannerId) return toast.error("Invalid Banner ID");
-    if (!title.trim() || !description.trim()) return toast.error("All fields are required");
+    if (!title.trim() || !description.trim())
+      return toast.error("All fields are required");
 
     try {
       let imageUrl = imagePreview || "";
@@ -96,7 +99,8 @@ export default function EditBannerPage() {
   };
 
   if (loading) return <div className="text-center py-20">Loading...</div>;
-  if (!colors || colors.length === 0) return <div className="text-center py-20">Loading colors...</div>;
+  if (!colors || colors.length === 0)
+    return <div className="text-center py-20">Loading colors...</div>;
 
   const mainColor = colors[0];
 
@@ -140,15 +144,28 @@ export default function EditBannerPage() {
       {imagePreview && (
         <div className="mb-4">
           <p className="text-gray-500 mb-1">Preview:</p>
-          <Image src={imagePreview} alt="Banner Preview" width={150} height={80} className="rounded object-contain" />
+          <Image
+            src={imagePreview}
+            alt="Banner Preview"
+            width={150}
+            height={80}
+            className="rounded object-contain"
+          />
         </div>
       )}
 
       <button
         onClick={handleUpdate}
-        style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
-        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = mainColor.button_hover_color)}
-        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = mainColor.button_hex)}
+        style={{
+          backgroundColor: mainColor.button_hex,
+          color: mainColor.text_color,
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.backgroundColor = mainColor.button_hover_color)
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.backgroundColor = mainColor.button_hex)
+        }
         className="w-full py-3 rounded-2xl font-semibold shadow-md transition-transform hover:scale-105"
       >
         Update Banner
