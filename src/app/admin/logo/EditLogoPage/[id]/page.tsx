@@ -82,7 +82,7 @@ export default function EditLogoPage() {
       if (error) throw error;
 
       toast.success("Logo updated!");
-      router.push("/admin/logos/LogoDisplayPage");
+      router.push("/admin/logo");
     } catch (err: unknown) {
       if (err instanceof Error) toast.error(err.message);
       else toast.error("An unexpected error occurred");
