@@ -15,22 +15,46 @@ export default function EditMessagePage() {
     comment: "",
   });
 
+  // Fetch message data
   useEffect(() => {
     async function fetchMessage() {
       const { data, error } = await supabase
         .from("messages")
         .select("*")
-        .eq("id", id)
+        .eq("id", Number(id))
         .single();
-      if (error) toast.error(error.message);
-      else setForm(data);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      // Only store editable fields (exclude id)
+      setForm({
+        name: data.name || "",
+        phone: data.phone || "",
+        email: data.email || "",
+        comment: data.comment || "",
+      });
     }
-    fetchMessage();
+
+    if (id) fetchMessage();
   }, [id]);
 
+  // Handle form update
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
-    const { error } = await supabase.from("messages").update(form).eq("id", id);
+
+    const { error } = await supabase
+      .from("messages")
+      .update({
+        name: form.name,
+        phone: form.phone,
+        email: form.email,
+        comment: form.comment,
+      })
+      .eq("id", Number(id)); // Filter by id, do not include id in update
+
     if (error) toast.error(error.message);
     else toast.success("Message updated successfully!");
   }
@@ -49,23 +73,26 @@ export default function EditMessagePage() {
           required
           className="border rounded-md p-2"
         />
+
         <input
           type="text"
           placeholder="Phone"
-          value={form.phone || ""}
+          value={form.phone}
           onChange={(e) => setForm({ ...form, phone: e.target.value })}
           className="border rounded-md p-2"
         />
+
         <input
           type="email"
           placeholder="Email"
-          value={form.email || ""}
+          value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           className="border rounded-md p-2"
         />
+
         <textarea
           placeholder="Comment"
-          value={form.comment || ""}
+          value={form.comment}
           onChange={(e) => setForm({ ...form, comment: e.target.value })}
           className="border rounded-md p-2 h-28"
         ></textarea>
