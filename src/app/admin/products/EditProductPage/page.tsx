@@ -5,7 +5,6 @@ import { supabase } from "../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useSearchParams } from "next/navigation";
 
-// Types
 interface Color {
   id: number;
   text_color: string;
@@ -19,56 +18,54 @@ interface Category {
   name: string;
 }
 
-interface Product {
+interface Book {
   id: number;
   name: string;
-  years?: number | null;
-  size?: string | null;
   quantity?: number | null;
   price?: number | null;
-  numberOfOffer?: number | null;
   category_id?: number | null;
   image?: string | null;
   description?: string | null;
   offer_status?: boolean;
   is_new_collection?: boolean;
+  stock?: number;
 }
 
-export default function EditProductPage() {
+export default function EditBookPage() {
   const searchParams = useSearchParams();
   const id = Number(searchParams.get("id"));
 
   const [colors, setColors] = useState<Color[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [form, setForm] = useState<Product | null>(null);
+  const [form, setForm] = useState<Book | null>(null);
   const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     async function fetchColors() {
-      const { data, error } = await supabase.from("colors").select("*"); // لا تضعي generic
+      const { data, error } = await supabase.from("colors").select("*");
       if (error) toast.error(error.message);
-      else setColors((data || []) as Color[]); // type assertion
+      else setColors(data || []);
     }
 
     async function fetchCategories() {
       const { data, error } = await supabase.from("categories").select("*");
       if (error) toast.error(error.message);
-      else setCategories((data || []) as Category[]);
+      else setCategories(data || []);
     }
 
-    async function fetchProduct() {
+    async function fetchBook() {
       const { data, error } = await supabase
-        .from("add_products")
+        .from("books")
         .select("*")
         .eq("id", id)
         .single();
       if (error) toast.error(error.message);
-      else setForm(data as Product);
+      else setForm(data as Book);
     }
 
     fetchColors();
     fetchCategories();
-    fetchProduct();
+    fetchBook();
   }, [id]);
 
   async function uploadImage(file: File) {
@@ -83,7 +80,6 @@ export default function EditProductPage() {
       .getPublicUrl(fileName);
     return publicUrlData.publicUrl;
   }
-
   async function handleSave() {
     if (!form) return;
 
@@ -92,20 +88,18 @@ export default function EditProductPage() {
       if (file) imageUrl = await uploadImage(file);
 
       const { error } = await supabase
-        .from("add_products")
+        .from("books")
         .update({
           ...form,
-          years: form.years ? Number(form.years) : null,
           quantity: form.quantity ? Number(form.quantity) : null,
           price: form.price ? Number(form.price) : null,
-          numberOfOffer: form.numberOfOffer ? Number(form.numberOfOffer) : null,
           category_id: form.category_id ? Number(form.category_id) : null,
           image: imageUrl,
         })
         .eq("id", id);
 
       if (error) throw error;
-      toast.success("Product Updated!");
+      toast.success("Book Updated!");
     } catch (err: unknown) {
       if (err instanceof Error) toast.error(err.message);
       else toast.error("Unexpected error");
@@ -129,10 +123,7 @@ export default function EditProductPage() {
 
     setForm((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        [name]: value,
-      };
+      return { ...prev, [name]: value };
     });
   };
 
@@ -151,7 +142,7 @@ export default function EditProductPage() {
         className="text-2xl sm:text-3xl font-bold mb-6 text-center"
         style={{ color: mainColor.text_color }}
       >
-        Edit Product
+        Edit Book
       </h1>
 
       <div className="bg-white shadow-md rounded-xl p-4 sm:p-6 md:p-8 flex flex-col gap-4">
@@ -160,22 +151,6 @@ export default function EditProductPage() {
           name="name"
           placeholder="Name"
           value={form.name || ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="number"
-          name="years"
-          placeholder="Year"
-          value={form.years ?? ""}
-          onChange={handleChange}
-          className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
-        />
-        <input
-          type="text"
-          name="size"
-          placeholder="Size"
-          value={form.size || ""}
           onChange={handleChange}
           className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
         />
@@ -201,9 +176,9 @@ export default function EditProductPage() {
 
         <input
           type="number"
-          name="numberOfOffer"
-          placeholder="Number of Offer"
-          value={form.numberOfOffer ?? ""}
+          name="stock"
+          placeholder="Stock"
+          value={form.stock ?? ""}
           onChange={handleChange}
           className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
         />
@@ -227,6 +202,7 @@ export default function EditProductPage() {
           onChange={(e) => setFile(e.target.files?.[0] || null)}
           className="border p-2 rounded w-full focus:ring-2 focus:ring-blue-400"
         />
+
         <textarea
           name="description"
           placeholder="Description"

@@ -4,22 +4,33 @@ import { supabase } from "../../../../../lib/supabaseClient";
 import Image from "next/image";
 import toast from "react-hot-toast";
 
-type Product = { id: number; name: string };
-type ColorForm = { button_hex: string; text_color: string; button_hover_color: string };
+type Book = { id: number; name: string }; // changed type name
+type ColorForm = {
+  button_hex: string;
+  text_color: string;
+  button_hover_color: string;
+};
 
 export default function AddPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productsId, setProductsId] = useState("");
+  const [books, setBooks] = useState<Book[]>([]); // changed from products
+  const [bookId, setBookId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [colors, setColors] = useState<ColorForm[] | null>(null);
 
   useEffect(() => {
     async function fetchData() {
-      const { data: prod } = await supabase.from("add_products").select("*");
-      setProducts(prod || []);
+      // fetch books instead of add_products
+      const { data: bookData, error: bookError } = await supabase
+        .from("books")
+        .select("*");
+      if (bookError) toast.error(bookError.message);
+      else setBooks(bookData || []);
 
-      const { data: colorData } = await supabase.from("colors").select("*").order("id");
+      const { data: colorData } = await supabase
+        .from("colors")
+        .select("*")
+        .order("id");
       setColors(colorData || []);
     }
     fetchData();
@@ -35,24 +46,28 @@ export default function AddPage() {
 
   async function uploadImage(file: File) {
     const fileName = `multiimages/${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("products-images").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage
+      .from("products-images")
+      .upload(fileName, file);
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from("products-images").getPublicUrl(fileName);
+    const { data } = supabase.storage
+      .from("products-images")
+      .getPublicUrl(fileName);
     if (!data.publicUrl) throw new Error("Failed to get public URL");
     return data.publicUrl;
   }
 
   async function handleAdd() {
-    if (!productsId || !file) return toast.error("Select product & image");
+    if (!bookId || !file) return toast.error("Select book & image");
     try {
       const imageUrl = await uploadImage(file);
-      const { error } = await supabase.from("multiimages").insert([
-        { products_id: Number(productsId), image_path: imageUrl }
+      const { error } = await supabase.from("multimagebook").insert([
+        { book_id: Number(bookId), image_path: imageUrl }, // changed products_id → book_id
       ]);
       if (error) throw error;
       toast.success("Added successfully!");
-      setProductsId("");
+      setBookId("");
       setFile(null);
       setPreviewImage(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,17 +80,27 @@ export default function AddPage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white shadow-lg rounded-xl">
-      <h1 className="text-2xl font-bold mb-4" style={{ color: mainColor.text_color }}>Add MultiImage</h1>
+      <h1
+        className="text-2xl font-bold mb-4"
+        style={{ color: mainColor.text_color }}
+      >
+        Add MultiImage
+      </h1>
 
       <select
-        value={productsId}
-        onChange={e => setProductsId(e.target.value)}
+        value={bookId}
+        onChange={(e) => setBookId(e.target.value)}
         className="w-full px-4 py-3 rounded border mb-4"
-        style={{ borderColor: mainColor.button_hex, color: mainColor.text_color }}
+        style={{
+          borderColor: mainColor.button_hex,
+          color: mainColor.text_color,
+        }}
       >
-        <option value="">Select Product</option>
-        {products.map(p => (
-          <option key={p.id} value={p.id}>{p.name}</option>
+        <option value="">Select Book</option>
+        {books.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.name}
+          </option>
         ))}
       </select>
 
@@ -99,9 +124,16 @@ export default function AddPage() {
 
       <button
         onClick={handleAdd}
-        style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
-        onMouseEnter={e => (e.currentTarget.style.backgroundColor = mainColor.button_hover_color)}
-        onMouseLeave={e => (e.currentTarget.style.backgroundColor = mainColor.button_hex)}
+        style={{
+          backgroundColor: mainColor.button_hex,
+          color: mainColor.text_color,
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.backgroundColor = mainColor.button_hover_color)
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.backgroundColor = mainColor.button_hex)
+        }
         className="w-full py-3 rounded-2xl font-semibold shadow-md transition-colors"
       >
         Add Image

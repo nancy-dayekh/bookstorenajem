@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface ColorForm {
   id?: number;
@@ -29,20 +30,29 @@ export default function EditLogoPage() {
   }, [logoId]);
 
   async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
 
   async function fetchLogo(id: string) {
-    const { data, error } = await supabase.from("logos").select("*").eq("id", id).single();
+    const { data, error } = await supabase
+      .from("logos")
+      .select("*")
+      .eq("id", id)
+      .single();
     if (error) toast.error(error.message);
     else setPreview(data.logo_url);
   }
 
   async function uploadImage(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase.storage.from("logos").upload(fileName, file);
+    const { error: uploadError } = await supabase.storage
+      .from("logos")
+      .upload(fileName, file);
     if (uploadError) throw uploadError;
 
     const { data } = supabase.storage.from("logos").getPublicUrl(fileName);
@@ -65,7 +75,10 @@ export default function EditLogoPage() {
 
       if (!logoId) return toast.error("Logo ID missing!");
 
-      const { error } = await supabase.from("logos").update({ logo_url: newUrl }).eq("id", logoId);
+      const { error } = await supabase
+        .from("logos")
+        .update({ logo_url: newUrl })
+        .eq("id", logoId);
       if (error) throw error;
 
       toast.success("Logo updated!");
@@ -90,11 +103,15 @@ export default function EditLogoPage() {
       </h1>
 
       {preview && (
-        <img
-          src={preview}
-          alt="Preview"
-          className="w-32 h-32 object-contain mb-4 mx-auto rounded-lg"
-        />
+        <div className="w-32 h-32 mb-4 mx-auto relative rounded-lg overflow-hidden">
+          <Image
+            src={preview}
+            alt="Preview"
+            fill // Image يغطي container
+            style={{ objectFit: "contain" }}
+            priority // أفضل للصور المهمة مثل شعار
+          />
+        </div>
       )}
 
       <div className="flex flex-col sm:flex-row items-center gap-4">
@@ -110,7 +127,10 @@ export default function EditLogoPage() {
         />
         <button
           onClick={handleSave}
-          style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
+          style={{
+            backgroundColor: mainColor.button_hex,
+            color: mainColor.text_color,
+          }}
           className="px-6 py-2 rounded-lg font-semibold transition-transform hover:scale-105"
           onMouseEnter={(e) =>
             ((e.currentTarget as HTMLButtonElement).style.backgroundColor =

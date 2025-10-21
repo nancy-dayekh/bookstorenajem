@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
 
 interface ColorForm {
   id: number;
@@ -28,24 +29,7 @@ export default function EditSlidePage() {
   const [colors, setColors] = useState<ColorForm[] | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch colors
-  async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
-    if (error) toast.error(error.message);
-    else setColors(data || []);
-  }
-
-  // Fetch slide by ID
-  async function fetchSlide() {
-    const { data, error } = await supabase
-      .from("home_slider")
-      .select("*")
-      .eq("id", slideId)
-      .single();
-    if (error) toast.error(error.message);
-    else setSlide(data);
-  }
-
+  // Upload file to Supabase
   async function uploadFile(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -61,7 +45,7 @@ export default function EditSlidePage() {
     };
   }
 
-  // Handle update
+  // Update slide
   async function handleUpdate() {
     if (!file) return toast.error("Please select an image or video.");
     setLoading(true);
@@ -69,10 +53,13 @@ export default function EditSlidePage() {
     try {
       const { url, type } = await uploadFile(file);
 
-      const { error } = await supabase.from("home_slider").update({
-        media_url: url,
-        media_type: type,
-      }).eq("id", slideId);
+      const { error } = await supabase
+        .from("home_slider")
+        .update({
+          media_url: url,
+          media_type: type,
+        })
+        .eq("id", slideId);
 
       if (error) throw error;
 
@@ -85,10 +72,29 @@ export default function EditSlidePage() {
     }
   }
 
+  // Fetch colors and slide
   useEffect(() => {
-    fetchColors();
-    fetchSlide();
-  }, []);
+    async function fetchData() {
+      // Colors
+      const { data: colorData, error: colorError } = await supabase
+        .from("colors")
+        .select("*")
+        .order("id");
+      if (colorError) toast.error(colorError.message);
+      else setColors(colorData || []);
+
+      // Slide
+      const { data: slideData, error: slideError } = await supabase
+        .from("home_slider")
+        .select("*")
+        .eq("id", slideId)
+        .single();
+      if (slideError) toast.error(slideError.message);
+      else setSlide(slideData);
+    }
+
+    fetchData();
+  }, [slideId]);
 
   if (!colors || !slide)
     return <div className="text-center py-20">Loading...</div>;
@@ -116,6 +122,7 @@ export default function EditSlidePage() {
                 className="mx-auto w-full h-64 sm:h-72 md:h-80 lg:h-96 object-cover rounded"
               />
             ) : (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={URL.createObjectURL(file)}
                 alt="Preview"
@@ -129,9 +136,11 @@ export default function EditSlidePage() {
               className="mx-auto w-full h-64 sm:h-72 md:h-80 lg:h-96 object-cover rounded"
             />
           ) : (
-            <img
+            <Image
               src={slide.media_url}
-              alt="Preview"
+              alt="Slide Preview"
+              width={800}
+              height={400}
               className="mx-auto w-full h-64 sm:h-72 md:h-80 lg:h-96 object-cover rounded"
             />
           )}

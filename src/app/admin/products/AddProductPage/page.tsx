@@ -18,19 +18,18 @@ interface Category {
   name: string;
 }
 
-export default function AddProductPage() {
+export default function AddBookPage() {
   const [colors, setColors] = useState<ColorForm[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
-  const [years, setYears] = useState<number | undefined>();
-  const [size, setSize] = useState("");
   const [quantity, setQuantity] = useState<number | undefined>();
   const [price, setPrice] = useState<number | undefined>();
-  const [offerStatus, setOfferStatus] = useState(false);
-  const [isNewCollection, setIsNewCollection] = useState(false);
-  const [categoryId, setCategoryId] = useState<number | undefined>();
-  const [file, setFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState<number | undefined>();
+  const [offerStatus, setOfferStatus] = useState(false);
+  const [isNewCollection, setIsNewCollection] = useState(true);
+  const [stock, setStock] = useState<number | undefined>();
+  const [file, setFile] = useState<File | null>(null);
 
   const router = useRouter();
 
@@ -40,33 +39,22 @@ export default function AddProductPage() {
   }, []);
 
   async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*"); // لا تضعي أي generic هنا
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      // اعملي type assertion هنا
-      setColors((data || []) as ColorForm[]);
-    }
+    const { data, error } = await supabase.from("colors").select("*");
+    if (error) toast.error(error.message);
+    else setColors((data || []) as ColorForm[]);
   }
 
   async function fetchCategories() {
     const { data, error } = await supabase.from("categories").select("*");
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      setCategories((data || []) as Category[]);
-    }
+    if (error) toast.error(error.message);
+    else setCategories((data || []) as Category[]);
   }
 
-  // Upload image
   async function uploadImage(file: File) {
     const fileName = `public/${Date.now()}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from("products-images")
       .upload(fileName, file);
-
     if (uploadError) throw uploadError;
 
     const { data: publicUrlData } = supabase.storage
@@ -76,31 +64,30 @@ export default function AddProductPage() {
     return publicUrlData.publicUrl;
   }
 
-  // Handle submit
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name || !size || !categoryId)
-      return toast.error("Please fill all required fields.");
+    if (!name || !categoryId) return toast.error("Please fill all required fields.");
 
     let imageUrl = "";
     if (file) imageUrl = await uploadImage(file);
 
-    const { error } = await supabase.from("add_products").insert({
+    const { error } = await supabase.from("books").insert({
       name,
-      years: years ?? null,
-      size,
-      quantity: quantity ?? null,
-      price: price ?? null,
+      quantity: quantity ?? 0,
+      price: price ?? 0,
+      description: description ?? "",
+      image: imageUrl,
+      category_id: categoryId,
       offer_status: offerStatus,
       is_new_collection: isNewCollection,
-      category_id: categoryId,
-      image: imageUrl,
-      description: description ?? "",
+      stock: stock ?? 0,
+      created_at: new Date(),
+      updated_at: new Date(),
     });
 
     if (error) toast.error(error.message);
     else {
-      toast.success("Product added successfully!");
+      toast.success("Book added successfully!");
       router.push("/admin/products");
     }
   }
@@ -115,7 +102,7 @@ export default function AddProductPage() {
         className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-center"
         style={{ color: mainColor.text_color }}
       >
-        Add New Product
+        Add New Book
       </h1>
 
       <form
@@ -124,27 +111,10 @@ export default function AddProductPage() {
       >
         <input
           type="text"
-          placeholder="Product Name"
+          placeholder="Book Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-blue-400 col-span-1 md:col-span-2"
-          required
-        />
-
-        <input
-          type="number"
-          placeholder="Year"
-          value={years ?? ""}
-          onChange={(e) => setYears(Number(e.target.value))}
-          className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-blue-400"
-        />
-
-        <input
-          type="text"
-          placeholder="Size"
-          value={size}
-          onChange={(e) => setSize(e.target.value)}
-          className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-blue-400"
           required
         />
 
@@ -161,6 +131,14 @@ export default function AddProductPage() {
           placeholder="Price"
           value={price ?? ""}
           onChange={(e) => setPrice(Number(e.target.value))}
+          className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-blue-400"
+        />
+
+        <input
+          type="number"
+          placeholder="Stock"
+          value={stock ?? ""}
+          onChange={(e) => setStock(Number(e.target.value))}
           className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-blue-400"
         />
 
@@ -192,25 +170,23 @@ export default function AddProductPage() {
           className="border p-2 rounded-lg w-full"
         />
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 col-span-1 md:col-span-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={offerStatus}
-              onChange={(e) => setOfferStatus(e.target.checked)}
-            />
-            Offer Status
-          </label>
+        <label className="flex items-center gap-2 col-span-1 md:col-span-2">
+          <input
+            type="checkbox"
+            checked={offerStatus}
+            onChange={(e) => setOfferStatus(e.target.checked)}
+          />
+          Offer Status
+        </label>
 
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={isNewCollection}
-              onChange={(e) => setIsNewCollection(e.target.checked)}
-            />
-            New Collection
-          </label>
-        </div>
+        <label className="flex items-center gap-2 col-span-1 md:col-span-2">
+          <input
+            type="checkbox"
+            checked={isNewCollection}
+            onChange={(e) => setIsNewCollection(e.target.checked)}
+          />
+          New Collection
+        </label>
 
         <button
           type="submit"
@@ -228,7 +204,7 @@ export default function AddProductPage() {
               mainColor.button_hex)
           }
         >
-          Add Product
+          Add Book
         </button>
       </form>
     </div>

@@ -13,8 +13,7 @@ interface ColorForm {
 }
 
 export default function InsertCheckoutPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [products, setProducts] = useState<any[]>([]);
+  const [books, setBooks] = useState<any[]>([]);
   const [deliveries, setDeliveries] = useState<any[]>([]);
   const [colors, setColors] = useState<ColorForm[] | null>(null);
 
@@ -25,8 +24,7 @@ export default function InsertCheckoutPage() {
     phone: "",
     city: "",
     region: "",
-    product_id: "",
-    size: "",
+    book_id: "",
     quantity: 1,
     delivery_id: "",
     subtotal: "",
@@ -35,8 +33,8 @@ export default function InsertCheckoutPage() {
 
   useEffect(() => {
     async function fetchRelations() {
-      const { data: productsData } = await supabase.from("add_products").select("*");
-      setProducts(productsData || []);
+      const { data: booksData } = await supabase.from("books").select("*");
+      setBooks(booksData || []);
       const { data: deliveriesData } = await supabase.from("deliveries").select("*");
       setDeliveries(deliveriesData || []);
     }
@@ -77,8 +75,7 @@ export default function InsertCheckoutPage() {
       await supabase.from("checkout_items").insert([
         {
           checkout_id: newCheckout.id,
-          product_id: Number(form.product_id),
-          size: form.size,
+          book_id: Number(form.book_id),
           quantity: Number(form.quantity),
         },
       ]);
@@ -91,8 +88,7 @@ export default function InsertCheckoutPage() {
         phone: "",
         city: "",
         region: "",
-        product_id: "",
-        size: "",
+        book_id: "",
         quantity: 1,
         delivery_id: "",
         subtotal: "",
@@ -118,16 +114,7 @@ export default function InsertCheckoutPage() {
       </h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {[
-          "first_name",
-          "last_name",
-          "address",
-          "phone",
-          "city",
-          "region",
-          "subtotal",
-          "total",
-        ].map((field) => (
+        {["first_name", "last_name", "address", "phone", "city", "region", "subtotal", "total"].map((field) => (
           <input
             key={field}
             type="text"
@@ -139,25 +126,18 @@ export default function InsertCheckoutPage() {
         ))}
 
         <select
-          value={form.product_id}
-          onChange={(e) => setForm({ ...form, product_id: e.target.value })}
+          value={form.book_id}
+          onChange={(e) => setForm({ ...form, book_id: e.target.value })}
           className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none"
         >
-          <option value="">Select Product</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
+          <option value="">Select Book</option>
+          {books.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
             </option>
           ))}
         </select>
 
-        <input
-          type="text"
-          placeholder="Size"
-          value={form.size}
-          onChange={(e) => setForm({ ...form, size: e.target.value })}
-          className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-400 outline-none"
-        />
         <input
           type="number"
           placeholder="Quantity"

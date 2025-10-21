@@ -13,21 +13,21 @@ interface ColorForm {
   button_hover_color: string;
 }
 
-export default function DisplayProductsPage() {
+export default function DisplayBooksPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [products, setProducts] = useState<any[]>([]);
+  const [books, setBooks] = useState<any[]>([]);
   const [colors, setColors] = useState<ColorForm[] | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    fetchProducts();
+    fetchBooks();
     fetchColors();
   }, []);
 
-  async function fetchProducts() {
-    const { data, error } = await supabase.from("add_products").select("*");
+  async function fetchBooks() {
+    const { data, error } = await supabase.from("books").select("*");
     if (error) toast.error(error.message);
-    else setProducts(data || []);
+    else setBooks(data || []);
   }
 
   async function fetchColors() {
@@ -36,19 +36,18 @@ export default function DisplayProductsPage() {
     else setColors(data || []);
   }
 
-  async function deleteProduct(id: number) {
-    if (!confirm("Are you sure you want to delete this product?")) return;
-    const { error } = await supabase.from("add_products").delete().eq("id", id);
+  async function deleteBook(id: number) {
+    if (!confirm("Are you sure you want to delete this book?")) return;
+    const { error } = await supabase.from("books").delete().eq("id", id);
     if (error) toast.error(error.message);
     else {
-      toast.success("Product deleted!");
-      fetchProducts();
+      toast.success("Book deleted!");
+      fetchBooks();
     }
   }
 
   if (!colors) return <div className="text-center py-20">Loading...</div>;
   const mainColor = colors[0];
-
   const getRowColor = (index: number) => colors[index % colors.length];
 
   return (
@@ -56,10 +55,9 @@ export default function DisplayProductsPage() {
       <Toaster position="top-right" />
 
       <h1 className="text-3xl font-bold mb-6 text-center" style={{ color: mainColor.text_color }}>
-        Products List
+        Books List
       </h1>
 
-      {/* Add Product Button */}
       <div className="mb-4 flex justify-end">
         <button
           onClick={() => router.push("/admin/products/AddProductPage")}
@@ -72,39 +70,38 @@ export default function DisplayProductsPage() {
             ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hex)
           }
         >
-          + Add Product
+          + Add Book
         </button>
       </div>
 
-      {/* Products Table */}
       <div className="overflow-x-auto rounded-xl shadow-md bg-white">
         <table className="min-w-full text-sm sm:text-base border-collapse">
           <thead style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}>
             <tr>
-              {["Name", "Year", "Size", "Qty", "Price", "Offer", "New Collection", "Image", "Actions"].map((t) => (
+              {["Name", "Quantity", "Price", "Offer",  "New Collection", "Stock", "Image", "Actions"].map((t) => (
                 <th key={t} className="p-2 sm:p-3 text-left">{t}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {products.length > 0 ? (
-              products.map((p, index) => {
+            {books.length > 0 ? (
+              books.map((b, index) => {
                 const rowColor = getRowColor(index);
                 return (
-                  <tr key={p.id} className="border-b hover:brightness-95 transition-all">
-                    <td className="p-2 sm:p-3">{p.name}</td>
-                    <td className="p-2 sm:p-3">{p.years}</td>
-                    <td className="p-2 sm:p-3">{p.size}</td>
-                    <td className="p-2 sm:p-3">{p.quantity}</td>
-                    <td className="p-2 sm:p-3">{p.price}</td>
-                    <td className="p-2 sm:p-3">{p.offer_status ? "Yes" : "No"}</td>
-                    <td className="p-2 sm:p-3">{p.is_new_collection ? "Yes" : "No"}</td>
+                  <tr key={b.id} className="border-b hover:brightness-95 transition-all">
+                    <td className="p-2 sm:p-3">{b.name}</td>
+                    <td className="p-2 sm:p-3">{b.quantity}</td>
+                    <td className="p-2 sm:p-3">{b.price}</td>
+                    <td className="p-2 sm:p-3">{b.offer_status ? "Yes" : "No"}</td>
+                    <td className="p-2 sm:p-3">{b.numberOfOffer}</td>
+                    <td className="p-2 sm:p-3">{b.is_new_collection ? "Yes" : "No"}</td>
+                    <td className="p-2 sm:p-3">{b.stock}</td>
                     <td className="p-2 sm:p-3">
-                      {p.image && <Image src={p.image} alt={p.name} width={50} height={50} className="object-cover rounded" />}
+                      {b.image && <Image src={b.image} alt={b.name} width={50} height={50} className="object-cover rounded" />}
                     </td>
                     <td className="p-2 sm:p-3 flex flex-wrap gap-2 justify-center">
                       <button
-                        onClick={() => router.push(`/admin/products/EditProductPage?id=${p.id}`)}
+                        onClick={() => router.push(`/admin/products/EditProductPage?id=${b.id}`)}
                         style={{ backgroundColor: rowColor.button_hex, color: rowColor.text_color }}
                         className="px-4 py-1 rounded-lg font-semibold transition-transform hover:scale-105"
                         onMouseEnter={(e) =>
@@ -117,7 +114,7 @@ export default function DisplayProductsPage() {
                         Edit
                       </button>
                       <button
-                        onClick={() => deleteProduct(p.id)}
+                        onClick={() => deleteBook(b.id)}
                         style={{ backgroundColor: "#f43f5e", color: "#fff" }}
                         className="px-4 py-1 rounded-lg font-semibold transition-transform hover:scale-105"
                       >
@@ -130,7 +127,7 @@ export default function DisplayProductsPage() {
             ) : (
               <tr>
                 <td colSpan={9} className="p-3 text-center text-gray-500">
-                  No products available.
+                  No books available.
                 </td>
               </tr>
             )}

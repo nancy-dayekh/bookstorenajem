@@ -20,14 +20,13 @@ interface CheckoutForm {
   city: string;
   region: string;
   product_id: string;
-  size: string;
   quantity: number;
   delivery_id: string;
   subtotal: string;
   total: string;
 }
 
-interface Product {
+interface Book {
   id: number;
   name: string;
 }
@@ -43,7 +42,7 @@ export default function EditCheckoutPage() {
   const checkoutId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [colors, setColors] = useState<ColorForm[] | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [form, setForm] = useState<CheckoutForm>({
     first_name: "",
@@ -53,7 +52,6 @@ export default function EditCheckoutPage() {
     city: "",
     region: "",
     product_id: "",
-    size: "",
     quantity: 1,
     delivery_id: "",
     subtotal: "",
@@ -67,20 +65,15 @@ export default function EditCheckoutPage() {
   }, [checkoutId]);
 
   async function fetchColors() {
-    const { data, error } = await supabase
-      .from("colors")
-      .select("*")
-      .order("id");
+    const { data, error } = await supabase.from("colors").select("*").order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
 
   async function fetchRelations() {
-    const { data: productsData, error: productsError } = await supabase
-      .from("add_products")
-      .select("*");
-    if (productsError) toast.error(productsError.message);
-    else setProducts(productsData || []);
+    const { data: booksData, error: booksError } = await supabase.from("books").select("*");
+    if (booksError) toast.error(booksError.message);
+    else setBooks(booksData || []);
 
     const { data: deliveriesData, error: deliveriesError } = await supabase
       .from("deliveries")
@@ -92,7 +85,7 @@ export default function EditCheckoutPage() {
   async function fetchCheckout(id: string) {
     const { data, error } = await supabase
       .from("checkout_items")
-      .select(`*, checkout:checkouts(*), product:add_products(*)`)
+      .select(`*, checkout:checkouts(*), product:books(*)`)
       .eq("checkout_id", id);
 
     if (error) toast.error(error.message);
@@ -107,7 +100,6 @@ export default function EditCheckoutPage() {
         city: checkout.city,
         region: checkout.region,
         product_id: item.product_id?.toString() || "",
-        size: item.size || "",
         quantity: item.quantity || 1,
         delivery_id: checkout.delivery_id?.toString() || "",
         subtotal: checkout.subtotal,
@@ -150,7 +142,6 @@ export default function EditCheckoutPage() {
           .from("checkout_items")
           .update({
             product_id: productId,
-            size: form.size,
             quantity: form.quantity,
           })
           .eq("id", existingItems[0].id);
@@ -159,7 +150,6 @@ export default function EditCheckoutPage() {
           {
             checkout_id: checkoutId,
             product_id: productId,
-            size: form.size,
             quantity: form.quantity,
           },
         ]);
@@ -217,30 +207,20 @@ export default function EditCheckoutPage() {
           onChange={(e) => setForm({ ...form, product_id: e.target.value })}
           className="border p-3 rounded-md w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-400"
         >
-          <option value="">Select Product</option>
-          {products.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
+          <option value="">Select Book</option>
+          {books.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
             </option>
           ))}
         </select>
-
-        <input
-          type="text"
-          placeholder="Size"
-          value={form.size}
-          onChange={(e) => setForm({ ...form, size: e.target.value })}
-          className="border p-3 rounded-md w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-400"
-        />
 
         <input
           type="number"
           placeholder="Quantity"
           value={form.quantity}
           min={1}
-          onChange={(e) =>
-            setForm({ ...form, quantity: Number(e.target.value) })
-          }
+          onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
           className="border p-3 rounded-md w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-400"
         />
 

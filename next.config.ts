@@ -1,6 +1,6 @@
 // next.config.js
 module.exports = {
   images: {
-    domains: ["jewkhodpkyqdwknnrxld.supabase.co"],
+    domains: ["wfsohhlfmkbwcmbaijgu.supabase.co"],
   },
 };

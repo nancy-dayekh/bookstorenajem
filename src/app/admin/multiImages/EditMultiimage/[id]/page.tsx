@@ -6,15 +6,15 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 
-type Product = { id: number; name: string };
+type Book = { id: number; name: string }; // changed type
 type ColorForm = { button_hex: string; text_color: string; button_hover_color: string };
 
 export default function EditPage() {
   const router = useRouter();
   const { id } = useParams(); // multiimage id from URL
 
-  const [products, setProducts] = useState<Product[]>([]);
-  const [productsId, setProductsId] = useState("");
+  const [books, setBooks] = useState<Book[]>([]); // changed from products
+  const [bookId, setBookId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [colors, setColors] = useState<ColorForm[] | null>(null);
@@ -22,9 +22,10 @@ export default function EditPage() {
 
   useEffect(() => {
     async function fetchData() {
-      // fetch products
-      const { data: prod } = await supabase.from("add_products").select("*");
-      setProducts(prod || []);
+      // fetch books
+      const { data: bookData, error: bookError } = await supabase.from("books").select("*");
+      if (bookError) toast.error(bookError.message);
+      else setBooks(bookData || []);
 
       // fetch colors
       const { data: colorData } = await supabase.from("colors").select("*").order("id");
@@ -32,10 +33,10 @@ export default function EditPage() {
 
       // fetch current multiimage
       if (id) {
-        const { data: imgData, error } = await supabase.from("multiimages").select("*").eq("id", Number(id)).single();
+        const { data: imgData, error } = await supabase.from("multimagebook").select("*").eq("id", Number(id)).single();
         if (error) toast.error(error.message);
         else {
-          setProductsId(String(imgData.products_id));
+          setBookId(String(imgData.book_id)); // changed products_id → book_id
           setExistingImage(imgData.image_path);
           setPreviewImage(imgData.image_path);
         }
@@ -63,7 +64,7 @@ export default function EditPage() {
   }
 
   async function handleUpdate() {
-    if (!productsId) return toast.error("Select product");
+    if (!bookId) return toast.error("Select book");
     try {
       let imageUrl = existingImage;
       if (file) {
@@ -71,8 +72,8 @@ export default function EditPage() {
       }
 
       const { error } = await supabase
-        .from("multiimages")
-        .update({ products_id: Number(productsId), image_path: imageUrl })
+        .from("multimagebook") // changed table
+        .update({ book_id: Number(bookId), image_path: imageUrl })
         .eq("id", Number(id));
 
       if (error) throw error;
@@ -90,14 +91,14 @@ export default function EditPage() {
       <h1 className="text-2xl font-bold mb-4" style={{ color: mainColor.text_color }}>Edit MultiImage</h1>
 
       <select
-        value={productsId}
-        onChange={e => setProductsId(e.target.value)}
+        value={bookId}
+        onChange={e => setBookId(e.target.value)}
         className="w-full px-4 py-3 rounded border mb-4"
         style={{ borderColor: mainColor.button_hex, color: mainColor.text_color }}
       >
-        <option value="">Select Product</option>
-        {products.map(p => (
-          <option key={p.id} value={p.id}>{p.name}</option>
+        <option value="">Select Book</option>
+        {books.map(b => (
+          <option key={b.id} value={b.id}>{b.name}</option>
         ))}
       </select>
 

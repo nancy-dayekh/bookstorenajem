@@ -39,8 +39,7 @@ export default function TodayOrdersLive() {
         *,
         items:checkout_items (
           id,
-          product:add_products (id,name,price,image),
-          size,
+          book:books (id,name,price,image),
           quantity
         )
       `
@@ -174,7 +173,7 @@ export default function TodayOrdersLive() {
                         color: mainColor.text_color,
                       }}
                     >
-                      <h3 className="font-semibold mb-2">Product Details:</h3>
+                      <h3 className="font-semibold mb-2">Book Details:</h3>
                       <div className="space-y-3">
                         {order.items?.map((item: any) => (
                           <div
@@ -182,19 +181,19 @@ export default function TodayOrdersLive() {
                             className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6"
                           >
                             <Image
-                              src={item.product?.image || "/placeholder.png"}
-                              alt={item.product?.name ?? "Product image"}
+                              src={item.book?.image || "/placeholder.png"}
+                              alt={item.book?.name ?? "Book image"}
                               width={80}
                               height={80}
                               className="rounded-md object-cover"
                             />
+
                             <div>
                               <p className="font-medium">
-                                {item.product?.name ?? "Unnamed Product"}
+                                {item.book?.name ?? "Unnamed Book"}
                               </p>
-                              <p>Size: {item.size}</p>
                               <p>Qty: {item.quantity}</p>
-                              <p>Price: ${item.product?.price ?? 0}</p>
+                              <p>Price: ${item.book?.price ?? 0}</p>
                             </div>
                           </div>
                         ))}

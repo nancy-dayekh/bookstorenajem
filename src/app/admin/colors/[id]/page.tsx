@@ -33,32 +33,22 @@ export default function EditColorPage() {
 
   const [loading, setLoading] = useState(false);
 
-  // Fetch color details
   useEffect(() => {
-    if (!colorId) {
-      console.log("❌ Invalid ColorId:", colorId, params);
-      return;
-    }
+    if (!colorId) return;
 
     async function fetchColor() {
-      console.log("🔍 Fetching color with ID:", colorId);
       const { data, error } = await supabase
         .from("colors")
         .select("*")
         .eq("id", colorId)
         .single();
 
-      if (error) {
-        console.error("❌ Fetch error:", error);
-        toast.error(error.message);
-      } else if (data) {
-        console.log("✅ Fetched color:", data);
-        setForm(data);
-      }
+      if (error) toast.error(error.message);
+      else if (data) setForm(data);
     }
 
     fetchColor();
-  }, [colorId]);
+  }, [colorId, params]); // ✅ أضفنا params
 
   // Update color
   async function handleUpdate() {

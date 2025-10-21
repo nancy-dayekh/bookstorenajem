@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
+import Image from "next/image";
 
 interface ColorForm {
   id: number;
@@ -28,13 +29,15 @@ export default function AddSlidePage() {
 
   async function uploadFile(file: File) {
     const fileName = `${Date.now()}_${file.name}`;
-    const { error: uploadError } = await supabase
-      .storage.from("home-slider")
+    const { error: uploadError } = await supabase.storage
+      .from("home-slider")
       .upload(fileName, file);
 
     if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage.from("home-slider").getPublicUrl(fileName);
+    const { data } = supabase.storage
+      .from("home-slider")
+      .getPublicUrl(fileName);
     return {
       url: data.publicUrl,
       type: file.type.startsWith("video") ? "video" : "image",
@@ -94,10 +97,13 @@ export default function AddSlidePage() {
                 className="mx-auto w-full h-64 object-cover rounded"
               />
             ) : (
-              <img
+              // Preview للصورة قبل الرفع
+              <Image
                 src={URL.createObjectURL(file)}
-                alt="Preview"
-                className="mx-auto w-full h-64 object-cover rounded"
+                alt="Slide Preview"
+                width={800}
+                height={400}
+                className="rounded object-cover"
               />
             )}
           </div>

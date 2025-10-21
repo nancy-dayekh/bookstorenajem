@@ -22,7 +22,7 @@ type Order = {
   total: number | string;
   created_at: string;
 };
-type CheckoutItem = { quantity: number; add_products?: { name: string } };
+type CheckoutItem = { quantity: number; books?: { name: string } };
 type TopProduct = { name: string; quantity: number };
 type MonthlyData = { month: string; revenue: number };
 
@@ -84,11 +84,11 @@ export default function AdminDashboard() {
 
         const { data: items } = await supabase
           .from("checkout_items")
-          .select("quantity, add_products(name)");
+          .select("quantity, books(name)");
         const typedItems = (items || []) as unknown as CheckoutItem[];
         const productSales: Record<string, number> = {};
         typedItems.forEach((item) => {
-          const name = item.add_products?.name || "Unknown";
+          const name = item.books?.name || "Unknown";
           productSales[name] = (productSales[name] || 0) + item.quantity;
         });
         setTopProducts(
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
         );
 
         const { data: allProducts } = await supabase
-          .from("add_products")
+          .from("books")
           .select("id");
         setTotalProducts(allProducts?.length || 0);
       } catch (err) {

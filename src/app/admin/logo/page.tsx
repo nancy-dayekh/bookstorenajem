@@ -5,6 +5,7 @@ import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface ColorForm {
   id?: number;
@@ -118,12 +119,17 @@ export default function LogoDisplayPage() {
                     {index + 1}
                   </td>
                   <td className="px-4 py-3">
-                    <img
-                      src={logo.logo_url}
-                      alt={`Logo ${logo.id}`}
-                      className="w-16 h-16 object-contain"
-                    />
+                    <div className="w-16 h-16 relative">
+                      <Image
+                        src={logo.logo_url}
+                        alt={`Logo ${logo.id}`}
+                        fill
+                        style={{ objectFit: "contain" }}
+                        priority
+                      />
+                    </div>
                   </td>
+
                   <td className="px-4 py-3 flex justify-center gap-2 sm:gap-3">
                     <Link
                       href={`/admin/logo/EditLogoPage/${logo.id}`}

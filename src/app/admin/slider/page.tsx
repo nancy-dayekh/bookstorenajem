@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Slide {
   id: number;
@@ -28,13 +29,19 @@ export default function DisplaySlidesPage() {
   }, []);
 
   async function fetchSlides() {
-    const { data, error } = await supabase.from("home_slider").select("*").order("id");
+    const { data, error } = await supabase
+      .from("home_slider")
+      .select("*")
+      .order("id");
     if (error) toast.error(error.message);
     else setSlides(data || []);
   }
 
   async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
+    const { data, error } = await supabase
+      .from("colors")
+      .select("*")
+      .order("id");
     if (error) toast.error(error.message);
     else setColors(data || []);
   }
@@ -52,8 +59,6 @@ export default function DisplaySlidesPage() {
 
   if (!colors) return <div className="text-center py-20">Loading...</div>;
   const mainColor = colors[0];
-
-  const getRowColor = (index: number) => colors[index % colors.length];
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-6 py-6">
@@ -104,7 +109,7 @@ export default function DisplaySlidesPage() {
                 </td>
               </tr>
             ) : (
-              slides.map((slide, index) => (
+              slides.map((slide) => (
                 <tr key={slide.id} className="border-b hover:bg-gray-50">
                   <td className="p-3">{slide.id}</td>
                   <td className="p-3">
@@ -115,10 +120,12 @@ export default function DisplaySlidesPage() {
                         className="w-full sm:w-40 h-48 sm:h-28 object-cover rounded"
                       />
                     ) : (
-                      <img
+                      <Image
                         src={slide.media_url}
                         alt={`Slide ${slide.id}`}
-                        className="w-full sm:w-40 h-48 sm:h-28 object-cover rounded"
+                        width={160}
+                        height={112}
+                        className="object-cover rounded"
                       />
                     )}
                   </td>
@@ -170,10 +177,12 @@ export default function DisplaySlidesPage() {
                 className="w-full h-48 object-cover rounded"
               />
             ) : (
-              <img
+              <Image
                 src={slide.media_url}
                 alt={`Slide ${slide.id}`}
-                className="w-full h-48 object-cover rounded"
+                width={400}
+                height={200}
+                className="object-cover rounded"
               />
             )}
             <div className="flex justify-between text-sm font-medium">
