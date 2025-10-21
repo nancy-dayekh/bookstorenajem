@@ -5,6 +5,13 @@ import { supabase } from "../../../../../../lib/supabaseClient";
 import toast, { Toaster } from "react-hot-toast";
 import { useParams, useRouter } from "next/navigation";
 
+interface ColorForm {
+  id: number;
+  button_hex: string;
+  text_color: string;
+  button_hover_color: string;
+}
+
 export default function EditDeliveryPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -12,37 +19,39 @@ export default function EditDeliveryPage() {
   const [salary, setSalary] = useState("");
   const [colors, setColors] = useState<ColorForm[] | null>(null);
 
-  interface ColorForm {
-    id: number;
-    button_hex: string;
-    text_color: string;
-    button_hover_color: string;
-  }
+  useEffect(() => {
+    async function fetchData() {
+      // Fetch colors
+      const { data: colorData, error: colorError } = await supabase
+        .from("colors")
+        .select("*")
+        .order("id");
+      if (colorError) toast.error(colorError.message);
+      else setColors(colorData || []);
 
-  async function fetchColors() {
-    const { data, error } = await supabase.from("colors").select("*").order("id");
-    if (error) toast.error(error.message);
-    else setColors(data || []);
-  }
+      // Fetch delivery
+      const { data: deliveryData, error: deliveryError } = await supabase
+        .from("deliveries")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (deliveryError) toast.error(deliveryError.message);
+      else setSalary(deliveryData.salary);
+    }
 
-  async function fetchDelivery() {
-    const { data, error } = await supabase.from("deliveries").select("*").eq("id", id).single();
-    if (error) toast.error(error.message);
-    else setSalary(data.salary);
-  }
+    fetchData();
+  }, [id]); // إضافة id كـ dependency
 
   async function saveDelivery() {
     if (!salary.trim()) return toast.error("Salary cannot be empty");
-    const { error } = await supabase.from("deliveries").update({ salary }).eq("id", id);
+    const { error } = await supabase
+      .from("deliveries")
+      .update({ salary })
+      .eq("id", id);
     if (error) return toast.error(error.message);
     toast.success("Salary Updated");
     router.push("/admin/deliveries");
   }
-
-  useEffect(() => {
-    fetchColors();
-    fetchDelivery();
-  }, []);
 
   if (!colors) return <div className="text-center py-20">Loading...</div>;
   const mainColor = colors[0];
@@ -71,10 +80,12 @@ export default function EditDeliveryPage() {
             style={{ backgroundColor: mainColor.button_hex, color: mainColor.text_color }}
             className="w-full py-3 rounded-2xl font-semibold transition-transform hover:scale-105 text-lg"
             onMouseEnter={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hover_color)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                mainColor.button_hover_color)
             }
             onMouseLeave={(e) =>
-              ((e.currentTarget as HTMLButtonElement).style.backgroundColor = mainColor.button_hex)
+              ((e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                mainColor.button_hex)
             }
           >
             Save Changes
