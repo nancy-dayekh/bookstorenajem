@@ -120,6 +120,8 @@ export default function AdminLayout({
     { href: "/admin/logo", label: "Logos", Icon: Package },
     { href: "/admin/colors", label: "Colors", Icon: Palette },
     { href: "/admin/slider", label: "Slider", Icon: IconImage },
+    { href: "/admin/messages", label: "Messages", Icon: Bell },
+
     {
       href: "/admin/homepage_banner",
       label: "Home Banner",
